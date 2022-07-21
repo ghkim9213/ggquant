@@ -1,0 +1,66 @@
+{% load humanize %}
+<div class="container col-9 p-3">
+  <div class="row py-lg-5">
+    <div class="col-lg-12 col-md-12">
+      <h1 class="fw-light mb-3">데이터베이스 조회 결과 요약</h1>
+      <div class="lead text-muted">
+        <p>{{ main.data.abstract.label_kor }}은 다음과 같이 정의됩니다:</p>
+        <p class="text-dark fs-6">$${{ main.data.abstract.syntax_katex }}.$$</p>
+        {% for inpt, choice_all in main.data.abstract.inspect_results.items %}
+        <p>'{{ inpt.labelKor }}'에 대입 가능한 {{ choice_all|length }}개 계열</p>
+        <div class="row mb-3">
+          {% for choice in choice_all %}
+          <div class="col">
+            <ul>
+              <li>
+                계열{{ forloop.counter }}
+                <ul>
+                  <li>계열명: {{ choice.label_kor }}상 {{ inpt.labelKor }}</li>
+                  <li>종목 수: 총 {{ main.data.n_stock_all | intcomma }}개 종목 중 {{ choice.n_stock | intcomma }}개 종목</li>
+                  <li>기간: {{ choice.bybq_range.0|slice:":4"}}년도 {{ choice.bybq_range.0|slice:"-1:"}}분기 ~ {{ choice.bybq_range.1|slice:":4"}}년도 {{ choice.bybq_range.1|slice:"-1:"}}분기</li>
+                  <li>관측치 수: {{ choice.n_obs | intcomma }}개</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        <p>이에 따라 다음 {{ main.data.result_all|length }}개 결과를 확인할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="row py-lg-5 align-items-md-stretch">
+    <h1 class="fw-light mb-3">결과 선택</h1>
+    {% for result in main.data.result_all %}
+    <div class="col-md-12 p-2">
+      <div class="h-100 p-5 bg-light border {% if result.is_same_oc %}border-3 border-success{% endif %} rounded-3">
+        {% if result.is_same_oc %}<span class="badge bg-success">추천</span>{% endif %}
+        <h2>결과{{ forloop.counter }}</h2>
+        <p>선택된 계열</p>
+        <ul>
+          {% for inpt_lk, series_lk in result.comb_lk.items %}
+          <li>
+            {{ inpt_lk }}: {{ series_lk }}
+          </li>
+          {% endfor %}
+        </ul>
+        <!-- <p>종목 수: 총 {{ main.data.n_stock_all | intcomma }}개 종목 중 {{ res.n_stock | intcomma }}개 종목</p>
+        <p>기간: {% for bybq in res.range_bybq %}{{ bybq|slice:":4"}}년도 {{ bybq|slice:"5:"}}분기{% if forloop.first %} ~ {% endif%}{% endfor %}</p>
+        <p>관측치 수 (결측치 제외): {{ res.n_obs | intcomma }}건</p> -->
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="queryData" value="true">
+          <input type="hidden" name="clsSelected" value="{{ main.data.clsSelected }}">
+          <input type="hidden" name="itemSelected" value="{{ main.data.itemSelected }}">
+          {% for inpt_nm, series_nm in result.comb.items %}
+          <input type="hidden" name="selected-inpt" value="{{ inpt_nm }}">
+          <input type="hidden" name="selected-series" value="{{ series_nm }}">
+          {% endfor %}
+          <button class="btn btn-primary" type="submit">바로 가기</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

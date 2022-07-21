@@ -1,0 +1,18 @@
+<div class="mb-5" id="article-header">
+  <p class="article-div text-secondary text-capitalize">{{ data.article.fieldname }}</p>
+  <h1 class="article-title text-capitalize fw-bold">{{ data.article.title.name }}</h1>
+  <p class="article-meta text-muted fw-light">by the following <a href="#">contributors</a></p>
+</div>
+<div id="article-body">
+  <div class="mb-3" id="article-body-definition"></div>
+  <div id="article-body-keywords">
+    <p class="fst-italic">keywords:
+      {% for k in data.keywords.all %}
+      <a class="text-decoration-none" href="#">#{{ k.name }}</a>
+      {% endfor %}
+    </p>
+  </div>
+  <hr>
+  <div id="article-body-description"></div>
+</div>
+<div id="article-footer"></div>

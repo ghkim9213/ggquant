@@ -1,0 +1,8 @@
+.formbox {
+  box-sizing: border-box;
+  padding: 2rem;
+  border: 1px solid;
+  border-radius: .25rem;
+  border-color: #dee2e6;
+  display: grid;
+}

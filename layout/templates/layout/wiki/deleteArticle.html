@@ -1,0 +1,61 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'layout/css/styles.css' %}">
+
+<!-- superusers' tasks -->
+<div class="mb-3" id="suptasks">
+  <select class="btn btn-outline-danger mb-3" name="task" id="task" v-model="task">
+    <option selected>변경 / 삭제</option>
+    <option value="moveto">분류 변경</option>
+    <option value="delete">삭제</option>
+  </select>
+  <div class="formbox" v-if="task === 'delete'">
+    <form action="/wiki/editor/delete/" id="article-delete-form" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="aid" value="{{ data.article.id }}">
+      <div class="mb-3">
+        {{ delform.deltype.label_tag }}
+        {{ delform.deltype }}
+        <div class="form-text">help text: blah</div>
+      </div>
+      <div class="mb-3">
+        {{ delform.delwhy.label_tag }}
+        {{ delform.delwhy }}
+      </div>
+      <div class="mb-3">
+        {{ delform.delwhydetail.label }}
+        {{ delform.delwhydetail }}
+      </div>
+      <!-- <div class="mb-3" v-if="remove.type ==='02'">
+        {{ delform.banheadword.label_tag }}
+        {{ delform.banheadword }}
+      </div> -->
+      <div class="mb-3">
+        {{ delform.banuser.label_tag }}
+        {{ delform.banuser }}
+      </div>
+      <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  Vue.createApp({
+    data() {
+      return {
+        task: "변경 / 삭제",
+        moveto: {
+          field: null,
+        },
+        remove: {
+          type: null,
+          why: null,
+          whydetail: null,
+          banheadword: null,
+          banuser: null,
+        },
+      }
+    },
+    methods: {
+    }
+  }).mount("#suptasks")
+</script>

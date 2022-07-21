@@ -1,0 +1,31 @@
+<div class="col-3 flex-shrink-0 scrollarea p-3 bg-light" style="width: 280px;">
+  <a href="/" class="d-flex align-items-center pb-3 mb-3 link-dark text-decoration-none border-bottom">
+    <svg class="bi me-2" width="30" height="24"><use xlink:href="#bootstrap"></use></svg>
+    <span class="fs-5 fw-semibold">Collapsible</span>
+  </a>
+  <ul class="list-unstyled ps-0">
+    {% for k, v in sidebar.items %}
+    <li class="mb-1">
+      <button class="btn btn-toggle align-items-center rounded collapsed" data-bs-toggle="collapse" data-bs-target="#{{ k }}-collapse">
+        {{ v.label_kor }}
+      </button>
+      <div class="collapse" id="{{ k }}-collapse">
+        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="inspectData" value="true">
+            <input type="hidden" name="clsSelected" value="AccountRatio">
+            {% for r in v.rows %}
+            {% if r.is_button %}
+            <li><button class="btn btn-link text-decoration-none text-dark" type="submit" name="itemSelected" value="{{ r.name }}">{{ r.labelKor }}</button></li>
+            {% else %}
+            <li class="mt-1"><button class="btn btn-link text-decoration-none text-mute fw-bold" disabled>{{ r.div_name }} 지표</button></li>
+            {% endif %}
+            {% endfor %}
+          </form>
+        </ul>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

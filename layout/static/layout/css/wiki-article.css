@@ -1,0 +1,15 @@
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif/*rtl:Amiri, Georgia, "Times New Roman", serif*/;
+}
+
+.article-div {
+  margin-bottom: .5rem;
+}
+
+.article-title {
+  margin-top: .25rem;
+  margin-bottom: .25rem;
+}
+.article-meta {
+  margin-bottom: 1.25rem;
+}

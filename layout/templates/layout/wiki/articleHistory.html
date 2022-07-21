@@ -1,0 +1,12 @@
+<ul class="list-group list-group-flush">
+  {% for h in data.article.history.all|dictsortreversed:"updated_at" %}
+  {% if h.is_cancelled %}
+  <li class="list-group-item d-inline-block text-truncate">
+    <a href="">{{ h.cancelled_by.username }}</a>님이 {{ h.cancelled_at }}에 {{ h.editor.username }}의 수정을 취소했습니다: {{ h.cancelled_why_detail }}.
+  </li>
+  {% endif %}
+  <li class="list-group-item d-inline-block text-truncate">
+    <a href="#">{{ h.editor.username }}</a>님이 {{ h.updated_at }}에 {% if h.is_draft %}초안을 작성했습니다{% else %}다음 사항을 수정했습니다{% endif %}: <a class="text-decoration-none" href="/wiki/{{ h.article.id }}/{{ forloop.revcounter }}">{{ h.abstract }}</a>
+  </li>
+  {% endfor %}
+</ul>

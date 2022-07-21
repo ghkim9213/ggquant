@@ -1,0 +1,28 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- {% include './vdataControl.html' %} -->
+  <div class="row py-lg-5" id="dashboard-main-header">
+    <div class="col-lg-12 col-md-12">
+      <h1 class="fw-light">{{ data.header.title }}</h1>
+      <p class="lead text-muted">{{ data.header.desc }}</p>
+    </div>
+  </div>
+
+  <div class="row align-items-md-stretch" id="dashboard-main-contents">
+    {% for content in data.contents.values %}
+    <div class="col-md-12 p-2">
+      <div class="h-100 p-5 bg-light border rounded-3">
+        <h2>{{ content.title }}</h2>
+        <p>{{ content.desc }}</p>
+        <a href="{{ content.url }}" class="btn btn-primary" role="button">바로 가기</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

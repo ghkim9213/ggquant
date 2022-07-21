@@ -1,0 +1,203 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'layout/css/styles.css' %}">
+<link rel="stylesheet" href="{% static 'layout/css/wiki-article.css' %}">
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+  {% if msg.tags == 'success' %}
+  <div class="alert alert-{{ msg.tags }} alert-dismissible fade show d-flex align-item-center" role="alert">
+    <i class="bi bi-check-circle-fill"></i>
+    <div>{{ msg }}</div>
+    <button class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+{% endfor %}
+{% endif %}
+
+<div class="container py-4">
+
+  {% include './deleteArticle.html' %}
+
+  <!-- navtab -->
+  <ul class="nav nav-tabs justify-content-end">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="article-viewer-tab" data-bs-toggle="tab" data-bs-target="#article-viewer" type="button" role="tab" aria-controls="article-viewer" aria-selected="true">
+        Read
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="article-editor-update-tab" data-bs-toggle="tab" data-bs-target="#article-editor-update" type="button" role="tab" aria-controls="article-editor-update" aria-selected="false">
+        Edit
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="article-history-tab" data-bs-toggle="tab" data-bs-target="#article-history" type="button" role="tab" aria-controls="article-history" aria-selected="false">
+        History
+      </button>
+    </li>
+  </ul>
+
+  <!-- contents -->
+  <div class="tab-content" id="article">
+    <!-- readArticle -->
+    <div class="tab-pane fade show active mt-4" id="article-viewer" role="tabpanel" aria-labelledby="article-viewer-tab">
+      {% include './articleViewer.html' %}
+    </div>
+    <div class="tab-pane fade mt-4" id="article-editor-update" role="tabpanel" aria-labelledby="article-editor-tab">
+      {% include './articleEditor.html' %}
+      <!-- {{ form }} -->
+    </div>
+    <div class="tab-pane fade mt-4" id="article-history" role="tabpanel" aria-labelledby="article-history-tab">
+      {% include './articleHistory.html' %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'node_modules/marked/marked.min.js' %}"></script>
+<script src="{% static 'node_modules/katex/dist/katex.min.js'%}"></script>
+<script src="{% static 'layout/js/katex-renderer.js' %}"></script>
+<script>
+  document.getElementById("article-input-title").setAttribute("disabled","")
+  document.getElementById("article-input-field").setAttribute("disabled","")
+  document.getElementById("article-input-fieldname").setAttribute("disabled","")
+</script>
+<script>
+  document.getElementById("article-body-definition").innerHTML =
+    marked.parse("{{ data.definition | escapejs }}")
+  document.getElementById("article-body-description").innerHTML =
+    marked.parse("{{ data.description | escapejs }}")
+</script>
+
+<script>
+  const defaultMsg = {
+    field: '',
+    fieldname: '',
+    title: '',
+    definition: '변경사항 없음 (Markdown, MathJax 지원)',
+    description: '변경사항 없음 (Markdown, MathJax 지원)',
+    keywords: '변경사항 없음 ("," 구분자로 작성. 예를 들어, "keyword1, keyword2, keyword3")',
+    abstract: '필수: 수정사항 요약 (예를 들어, 키워드 "example" 추가)'
+  }
+
+  const defaultKeywords =  document.getElementById("article-body-keywords").innerText
+    .trim().replace('keywords:','').replace(' #','').replaceAll(' #',', ')
+
+  Vue.createApp({
+    data() {
+      return {
+        field: {
+          value: "{{ data.article.field | escapejs }}",
+          isValid: true,
+          msg: defaultMsg.div,
+        },
+        fieldname: {
+          value: "{{ data.article.fieldname | escapejs }}"
+        },
+        title: {
+          value: "{{ data.article.title.name | escapejs }}",
+          isValid: true,
+          msg: defaultMsg.title,
+        },
+        definition: {
+          value: "{{ data.definition | escapejs }}",
+          isValid: false,
+          msg: defaultMsg.definition,
+        },
+        description: {
+          value: "{{ data.description | escapejs }}",
+          isValid: false,
+          msg: defaultMsg.description,
+        },
+        keywords: {
+          value: defaultKeywords,
+          isValid: false,
+          msg: defaultMsg.keywords,
+        },
+        abstract: {
+          value: null,
+          isValid: false,
+          msg: defaultMsg.abstract,
+        },
+        isDisabledButton: null,
+      }
+    },
+    computed: {
+      compiledMarkdown() {
+        return marked.parse(
+        `${this.definition.value}\n\n\n*keywords: ${this.keywords.value}*\n\n---\n\n${this.description.value}`
+        )
+      },
+      checkForm() {
+        this.isDisabledButton = !(
+          (
+            this.definition.isValid
+            || this.description.isValid
+            || this.keywords.isValid
+          ) && this.abstract.isValid
+        )
+        console.log(this.isDisabledButton)
+      }
+    },
+    methods: {
+      checkFieldForm() {},
+      checkTitleForm() {},
+      checkDefinitionForm() {
+        var newdef = encodeURI(this.definition.value).replaceAll("%0A","")
+        var def = encodeURI("{{ data.definition | escapejs }}").replaceAll("%0D%0A","")
+        if (newdef === def) {
+          this.definition.isValid = false
+          this.definition.msg = defaultMsg.definition
+        } else {
+          this.definition.isValid = true
+          this.definition.msg = ""
+        };
+      },
+      checkDescriptionForm() {
+        var newdesc = encodeURI(this.description.value).replaceAll("%0A","")
+        var desc = encodeURI("{{ data.description | escapejs }}").replaceAll("%0D%0A","")
+        if (newdesc === desc) {
+          this.description.isValid = false
+          this.description.msg = defaultMsg.description
+        } else {
+          this.description.isValid = true
+          this.description.msg = ""
+        };
+      },
+      checkKeywordsForm() {
+        function eqSet(a, b) {
+          if (a.size !== b.size) return false;
+          for (var i of a) if (!b.has(i)) return false;
+          return true;
+        };
+        var newkwds = new Set(this.keywords.value.replaceAll(" ","").split(","));
+        var kwds = new Set(defaultKeywords.replaceAll(" ","").split(","));
+
+        if (eqSet(kwds,newkwds)) {
+          this.keywords.isValid = false
+          this.keywords.msg = defaultMsg.keywords
+        } else {
+          this.keywords.isValid = true
+          this.keywords.msg = ""
+        };
+      },
+      checkAbstractForm() {
+        if (this.abstract.value === "") {
+          this.abstract.isValid = false
+        } else {
+          this.abstract.isValid = true
+        };
+      },
+    }
+  }).mount("#article-editor-update")
+</script>
+{% endblock %}

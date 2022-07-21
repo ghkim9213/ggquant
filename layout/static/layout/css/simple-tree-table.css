@@ -1,0 +1,7 @@
+.simple-tree-table-icon { display: inline-block; width: 1.5em; line-height: 1.5em; margin: 0.1em; background-color: #eee; text-align: center; cursor: pointer; }
+
+.simple-tree-table-opened .simple-tree-table-icon:after { content: '-'; }
+
+.simple-tree-table-closed .simple-tree-table-icon:after { content: '+'; }
+
+/*# sourceMappingURL=simple-tree-table.css.map */

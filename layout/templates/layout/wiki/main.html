@@ -1,0 +1,111 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}Wiki{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'layout/css/wiki-main.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="alert alert-secondary alert-dismissble fade show" role="alert">
+  <div class="container py-4">
+    <div class="clearfix">
+      <h4 class="alert-heading float-start">
+        Please join as editor!
+      </h4>
+      <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <hr>
+    <p>Aww yeah, you successfully read this important alert message. This example text is going to run a bit longer so that you can see how spacing within an alert works with this kind of content.</p>
+    <p class="text-center">
+      <a href="/wiki/editor/"><button class="btn btn-lg btn-success">Editor's page</button></a>
+      <!-- {% if user.is_authenticated %}
+
+      {% else %}
+      <a href="/user/signin"><button class="btn btn-lg btn-success">Sign in and join as editor</button></a>
+      {% endif %} -->
+    </p>
+  </div>
+</div>
+
+
+<div class="container py-4">
+
+<div id="wiki-control" class="sticky-top bg-white">
+  <div class="mt-lg-5 text-center" id="wiki-control-choice">
+    <h1 class="display-4">Wiki for</h1>
+    <div class="d-flex flex-row justify-content-center py-3" id="wiki-control-choice" @click="updateSelectedTab">
+      <ul class="nav nav-pills mb-3" role="tablist">
+        {% for i, c in choices.items %}
+        <li class="nav-item" role="presentation">
+          <button class="btn-lg nav-link{% if i == '00' %} active{% endif %}" id="choice{{ i }}-tab" data-bs-toggle="pill" data-bs-target="#choice{{ i }}" type="button" role="tab" aria-controls="choice{{ i }}" aria-selected="{% if i == '00' %}true{% else %}false{% endif %}">
+            {{ c.name }}
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- index -->
+  <div class="mb-3" id="wiki-control-nav">
+    <ul id="wiki-control-nav-alphabet" class="nav justify-content-center">
+      {% for x in alphabet %}
+      <li class="nav-item">
+        <a class="nav-link link-secondary" v-bind:href="'#wordbox'+selectedTab+'-{{ x }}-head'"><b>{{ x | title }}</b></a>
+      </li>
+      {% endfor %}
+    </ul>
+    <ul id="nav-wiki-hangul" class="nav justify-content-center">
+      {% for x in jaum %}
+      <li class="nav-item">
+        <a class="nav-link link-secondary" href="#"><b>{{ x }}</b></a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <hr class="my-4">
+</div>
+
+<!-- contents -->
+<div class="tab-content" id="wiki-content-list">
+  {% for i, c in choices.items %}
+  <div class="tab-pane fade{% if i == '00' %} show active{% endif %}" id="choice{{ i }}" role="tabpanel" aria-labelledby="#choice{{ i }}">
+    {% for k, qs in c.data.items %}
+    <div class="wordbox wordbox{{ i }} mb-5" id="wordbox{{ i }}-{{ k }}">
+      <div class="wordbox{{ i }}-head mb-3" id="wordbox{{ i }}-{{ k }}-head">
+        <a href="#" class="fs-3 fw-bold text-decoration-none">{{ k | upper }}</a>
+      </div>
+      <div class="wordbox{{ i }}-body d-flex flex-column flex-wrap mb-3" id="wordbox{{ i }}-{{ k }}-body" style="height: 200px">
+        {% for d in qs %}
+        <a href="/wiki/{{ d.id }}" class="wordbox{{ i }}-item text-capitalize link-dark text-decoration-none mb-3 fs-5">{{ d.title.name }}</a>
+        {% endfor %}
+      </div>
+      <div id="wordbox{{ i }}-{{ k }}-foot" class="text-end mb-3">
+        <a href="#">See more</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+</div>
+
+<script>
+  Vue.createApp({
+    data() {
+      return {
+        selectedTab: '00',
+      }
+    },
+    methods: {
+      updateSelectedTab () {
+        this.selectedTab = document.querySelector('[aria-selected="true"]').attributes['aria-controls'].value.slice(6,)
+      }
+    }
+  }).mount("#wiki-control")
+</script>
+
+{% endblock %}

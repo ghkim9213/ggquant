@@ -1,0 +1,9 @@
+{
+	"version": 3,
+	"file": "simple-tree-table.css",
+	"sources": [
+		"simple-tree-table.scss"
+	],
+	"names": [],
+	"mappings": "AAAA,AAGE,uBAHgB,CAGT,EACL,OAAO,EAAE,YAAY,EACrB,KAAK,EAAE,KAAK,EACZ,WAAW,EAAE,KAAK,EAClB,MAAM,EAAE,KAAK,EACb,gBAAgB,EAAE,IAAI,EACtB,UAAU,EAAE,MAAM,EAClB,MAAM,EAAE,OAAO,GAChB;;AAXH,AAYE,yBAZgB,CAAlB,uBAAkB,CAYA,KAAK,CAAC,EACpB,OAAO,EAAE,GAAG,GACb;;AAdH,AAeE,yBAfgB,CAAlB,uBAAkB,CAeA,KAAK,CAAC,EACpB,OAAO,EAAE,GAAG,GACb"
+}

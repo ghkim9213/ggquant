@@ -1,0 +1,174 @@
+{% load static %}
+
+<div class="alert alert-warning alert-dismissble fade show" role="alert">
+  <div class="container py-4">
+    <div class="clearfix">
+      <h4 class="alert-heading float-start">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        경고
+      </h4>
+      <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <p>당신의 게시글은 다음을 이유로 운영진에 의해 삭제될 수 있으며, 사항에 따라 영구적으로 활동 정지 당할 수 있습니다.</p>
+    <hr>
+    <ul>
+      <li>주제에 벗어나거나 부적절한 표제어를 등록한 경우</li>
+      <li>인용을 밝히지 않은 경우</li>
+      <li>영리법인에 대한 광고성 내용이 포함된 경우</li>
+      <li>기타</li>
+    </ul>
+    <p>Aww yeah, you successfully read this important alert message. This example text is going to run a bit longer so that you can see how spacing within an alert works with this kind of content.</p>
+  </div>
+</div>
+
+<div class="row">
+
+<!-- article-form start -->
+<div class="col-lg-6" id="article-form">
+  <form action="" class="col" method="post">
+    {% csrf_token %}
+
+    <div id="article-form-header">
+      <nav class="navbar navbar-light bg-white">
+        <div class="navbar-text fs-3">편집기</div>
+        <button class="btn btn-primary" type="submit" @change="checkForm" v-bind:disabled="isDisabledButton">
+          Submit
+        </button>
+      </nav>
+    </div>
+
+    <!-- form-body start -->
+    <div id="article-form-body">
+
+      <div id="article-form-field">
+        <div class="mb-3" @change="[getFieldname, checkFieldForm]">
+          <label for="article-field" class="form-label float-start">분류</label>
+          {% verbatim %}
+          <div class="form-text text-success float-end" v-if="field.isValid">{{ field.msg }}</div>
+          <div class="form-text text-danger float-end" v-else>{{ field.msg }}</div>
+          {% endverbatim %}
+          {{ form.field }}
+        </div>
+      </div>
+
+      <div id="article-form-fieldname">
+        <div class="mb-3" @input="checkFieldnameForm">
+          <div v-if="field.value === '99'">
+            {% verbatim %}
+            <div class="form-text text-success float-end" v-if="fieldname.isValid">{{ fieldname.msg }}</div>
+            <div class="form-text text-danger float-end" v-else-if="fieldname.isValid === false">{{ fieldname.msg }}</div>
+            <div class="form-text float-end" v-else>{{ fieldname.msg }}</div>
+            {% endverbatim %}
+            {{ form.fieldname }}
+          </div>
+          <div v-else>
+            <input type="hidden" name="fieldname" :value="fieldname.value">
+          </div>
+        </div>
+      </div>
+
+      <div id="article-form-title">
+        <div class="mb-3" @input="checkTitleForm">
+          <label for="title" class="form-label float-start">표제어</label>
+          {% verbatim %}
+          <div class="form-text text-success float-end" v-if="title.isValid">{{ title.msg }}</div>
+          <div class="form-text text-danger float-end" v-else>{{ title.msg }}</div>
+          {% endverbatim %}
+          {{ form.title }}
+        </div>
+      </div>
+
+      <div id="article-form-definition">
+        <div class="mb-3" @input="checkDefinitionForm">
+          <label for="definition" class="form-label float-start">정의</label>
+          {% verbatim %}
+          <div class="form-text text-success float-end" v-if="definition.isValid">{{ definition.msg }}</div>
+          <div class="form-text text-danger float-end" v-else>{{ definition.msg }}</div>
+          {% endverbatim %}
+          {{ form.definition }}
+        </div>
+      </div>
+
+      <div id="article-form-description">
+        <div class="mb-3" @input="checkDescriptionForm">
+          <div class="clearfix">
+            <label for="description" class="form-label float-start">상세</label>
+            {% verbatim %}
+            <div class="form-text text-success float-end" v-if="description.isValid">{{ description.msg }}</div>
+            <div class="form-text text-danger float-end" v-else-if="description.isValid === false">{{ description.msg }}</div>
+            <div class="form-text float-end" v-else>{{ description.msg }}</div>
+            {% endverbatim %}
+          </div>
+          {{ form.description }}
+        </div>
+      </div>
+
+      <div id="article-form-keywords">
+        <div class="mb-3" @input="checkKeywordsForm">
+          <div class="clearfix">
+            <label for="keywords" class="form-label float-start">키워드</label>
+            {% verbatim %}
+            <div class="form-text text-success float-end" v-if="keywords.isValid">{{ keywords.msg }}</div>
+            <div class="form-text text-danger float-end" v-else-if="keywords.isValid === false">{{ keywords.msg }}</div>
+            <div class="form-text float-end" v-else>{{ keywords.msg }}</div>
+            {% endverbatim %}
+          </div>
+          <input type="text" name="keywords" class="form-control col-md-10" v-model="keywords.value">
+        </div>
+      </div>
+
+      {% if cuDiv == 'update' %}
+      <div id="article-form-abstract">
+        <div class="mb-3" @input="checkAbstractForm">
+          <label for="abstract" class="form-label float-start">수정사항 요약</label>
+          {% verbatim %}
+          <div class="form-text text-success float-end" v-if="abstract.isValid">{{ abstract.msg }}</div>
+          <div class="form-text text-danger float-end" v-else>{{ abstract.msg }}</div>
+          {% endverbatim %}
+          <textarea type="textarea" class="form-control col-md-10" rows="5" name="abstract" v-model="abstract.value"></textarea>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+    <!-- article-form-body end -->
+  </form>
+</div>
+<!-- article-form end -->
+
+<!-- white space -->
+<div class="col-lg-1"></div>
+
+
+<!-- article-preview start -->
+<div class="col-lg-5" id="article-preview">
+  <div id="article-preview-header">
+    <div class="navbar navbar-light bg-white">
+      <div class="navbar-text fs-3">미리보기</div>
+    </div>
+  </div>
+  <div id="article-preview-body">
+    {% verbatim %}
+    <div id="article-header-in-preview">
+      <p class="article-div text-secondary">{{ fieldname.value }}</p>
+      <h1 class="article-title text-capitalize fw-bold">{{ title.value }}</h1>
+      <p class="article-meta text-muted fw-light">yyyy-mm-dd by <a href="#">author: username</a> and <a href="#">contributors</a></p>
+    </div>
+    {% endverbatim %}
+    <div id="article-body-in-preview">
+      <div v-html="compiledMarkdown"></div>
+    </div>
+  </div>
+</div>
+<!-- article-preview end -->
+
+</div>
+
+
+{% if messages %}
+<ul class="messages">
+  {% for msg in messages %}
+  <li{% if msg.tags %} class="{{ msg.tags }}"{% endif %}>{{ msg }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
