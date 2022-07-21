@@ -1,5 +1,5 @@
 with open('.etc/dbmaster_passwd.txt') as f:
-    dbmaster_pwd = f.read().strip()
+    dbmaster_passwd = f.read().strip()
 
 with open('.etc/dart_crtfc_key.txt') as f:
     dart_crtfc_key = f.read().strip()
