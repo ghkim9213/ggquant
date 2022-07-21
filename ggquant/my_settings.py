@@ -1,4 +1,4 @@
-with open('.etc/dbmaster_pwd.txt') as f:
+with open('.etc/dbmaster_passwd.txt') as f:
     dbmaster_pwd = f.read().strip()
 
 with open('.etc/dart_crtfc_key.txt') as f:
@@ -9,9 +9,9 @@ with open('.etc/dart_crtfc_key.txt') as f:
 DATABASES = {
     'default' : {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ggquant',
+        'NAME': 'ggdb',
         'USER': 'master',
-        'PASSWORD': dbmaster_pwd,
+        'PASSWORD': dbmaster_passwd,
         'HOST': 'localhost',
         'PORT': '3306',
     }

@@ -29,7 +29,7 @@ with open('.etc/secret_key.txt') as f:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['43.200.106.192', '.ap-northeast-2.compute.amazonaws.com']
 
 
 # Application definition
