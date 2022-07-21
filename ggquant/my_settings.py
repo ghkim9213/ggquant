@@ -12,7 +12,7 @@ DATABASES = {
         'NAME': 'ggdb',
         'USER': 'master',
         'PASSWORD': dbmaster_passwd,
-        'HOST': 'localhost',
+        'HOST': 'ggdb.cai2wlj5r9yu.ap-northeast-2.rds.amazonaws.com',
         'PORT': '3306',
     }
 }
