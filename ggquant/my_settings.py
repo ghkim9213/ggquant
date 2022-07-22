@@ -12,7 +12,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ggdb',
         'USER': 'master',
-        'PASSWORD': dbmaster_passwd,
+        'PASSWORD': ggdb_passwd,
         'HOST': ggdb_endpoint,
         'PORT': '3306',
     }
