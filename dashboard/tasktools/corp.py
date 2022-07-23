@@ -1,7 +1,7 @@
 from copy import deepcopy
 from dashboard.models import Corp, CorpHistory
 from io import BytesIO
-from prototype.my_settings import dart_crtfc_key
+from ggquant.my_settings import dart_crtfc_key
 
 import datetime, requests, xmltodict, zipfile
 import numpy as np

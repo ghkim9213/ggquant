@@ -1,8 +1,12 @@
-# Project Gong-yu Quant
----
-## Introduction
+# 공공퀀트 프로젝트
 
-Project Market Marker는 개인투자자의 자본시장 데이터 접근성 및 재정적 이해력 (financial literacy) 제고를 위해 기획되었습니다.
+---
+
+## 공공퀀트에 오신 것을 환영합니다!
+
+공공퀀트에 오신 것을 환영합니다! 이 프로젝트는 곳곳에 흩어져있거나 일괄 조회가 어려운 국내 자본시장 데이터를 수집하고 정리하여 정보이용자에게 제공하는 것을 목표로 합니다.
+
+개인투자자의 자본시장 데이터 접근성 및 재정적 이해력 (financial literacy) 제고를 위해 기획되었습니다. 어디서든
 
 ## Applications
 
