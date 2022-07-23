@@ -1,2 +1,5 @@
 .*
 !/.gitignore
+
+venv
+ggquant/local_settings.py
