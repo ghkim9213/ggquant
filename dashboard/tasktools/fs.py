@@ -5,7 +5,7 @@ from django.forms.models import model_to_dict
 from io import BytesIO
 from itertools import islice
 
-import datetime, json, os, requests, pymysql, zipfile, time
+import datetime, json, os, requests, zipfile, time
 import pandas as pd
 
 
