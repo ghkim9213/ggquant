@@ -1,13 +1,17 @@
+from .viewmanagers.main import *
+from .viewmanagers.rankings import *
+from .viewmanagers.stkrpt import *
+
 from django.shortcuts import render
-# from dashboard.contents.stock import *
-from dashboard.viewmanagers.rankings import *
-from dashboard.viewmanagers.stkrpt import *
-# from dashboard.contents.accountRatios import *
 
 import json
 
 def main(request):
-    return render(request,'layout/dashboard/main.html',{'data':data})
+    mvm = MainViewManager()
+    context = {
+        'categ': mvm.categ,
+    }
+    return render(request,'layout/dashboard/main.html',context)
 
 
 def rankings(request):
