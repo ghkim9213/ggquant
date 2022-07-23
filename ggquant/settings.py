@@ -21,7 +21,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 with open('.etc/secret_key.txt') as f:
     SECRET_KEY = f.read().strip()
@@ -29,7 +28,7 @@ with open('.etc/secret_key.txt') as f:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['43.200.106.192', '.ap-northeast-2.compute.amazonaws.com']
+ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com']
 
 
 # Application definition
@@ -110,7 +109,6 @@ CELERY_BROKER_URL = 'redis://localhost:6379'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = my_settings.DATABASES
-
 # {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
