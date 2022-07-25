@@ -92,7 +92,7 @@ def update_fs():
     odfm.update()
     t3 = time.time()
 
-    if len(odf._updated_file_all) > 0:
+    if len(odfm._updated_file_all) > 0:
         for odf in odfm._updated_file_all:
             fsm = FsManager(odf)
             fsm.update()
