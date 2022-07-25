@@ -179,11 +179,15 @@ class OpendartFileManager:
 
         if len(odf_created) > 0:
             OpendartFile.objects.bulk_create(odf_created)
-            print(f"...{len(odf_created)} opendart_files were created.")
+            print(f"...{len(odf_created)} opendart_files were created: {odf_created}.")
+            new_file_exists = True
 
         if len(odf_updated) > 0:
             OpendartFile.objects.bulk_update(odf_updated, ['updatedAt'])
-            print(f"...{len(odf_updated)} opendart_files were updated.")
+            print(f"...{len(odf_updated)} opendart_files were updated: {odf_updated}.")
+
+        if (len(odf_created) == 0) and (len(odf_updated) == 0):
+            print(f"...no update in opendart_files.")
 
         print('...update complete!')
 

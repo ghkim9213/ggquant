@@ -92,14 +92,15 @@ def update_fs():
     odfm.update()
     t3 = time.time()
 
-    for odf in odfm._updated_file_all:
-        fsm = FsManager(odf)
-        fsm.update()
-        fsm.update_details()
+    if len(odf._updated_file_all) > 0:
+        for odf in odfm._updated_file_all:
+            fsm = FsManager(odf)
+            fsm.update()
+            fsm.update_details()
 
-    arm = AccountRatioManager()
-    arm.update()
-    arm.bulk_inspect()
+        arm = AccountRatioManager()
+        arm.update()
+        arm.bulk_inspect()
 
 
 # @worker_shutdown.connect

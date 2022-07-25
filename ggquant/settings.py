@@ -26,7 +26,7 @@ with open('.etc/secret_key.txt') as f:
     SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
@@ -116,14 +116,14 @@ DATABASES = my_settings.DATABASES
 #     }
 # }
 
-CHANNEL_LAYERS = {
-    'default':{
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)]
-        }
-    }
-}
+# CHANNEL_LAYERS = {
+#     'default':{
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             'hosts': [('127.0.0.1', 6379)]
+#         }
+#     }
+# }
 
 
 # User substitution
