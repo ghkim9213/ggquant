@@ -26,8 +26,12 @@ with open('.etc/secret_key.txt') as f:
     SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
 
+# for dev in local
+# DEBUG = True
+
+#
+DEBUG = False
 ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
 
@@ -61,9 +65,9 @@ INSTALLED_APPS = [
 ]
 
 # scss
-SASS_ROOT = 'layout/static/'
+SASS_ROOT = 'static/'
 SASS_PROCESSOR_ENABLED = True
-SASS_PROCESSOR_ROOT = 'layout/static/'
+SASS_PROCESSOR_ROOT = 'static/'
 SASS_OUTPUT_STYLE = 'compact'
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
@@ -102,7 +106,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ggquant.wsgi.application'
-ASGI_APPLICATION = 'ggquant.asgi.application'
+# ASGI_APPLICATION = 'ggquant.asgi.application'
 CELERY_BROKER_URL = 'redis://localhost:6379'
 
 # Database
@@ -167,9 +171,10 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = 'layout/static'
+STATIC_ROOT = '/var/www/ggquant/static/'
+# STATIC_ROOT = 'layout/static'
 # STATICFILES_DIRS = [
-#     os.path.join(BASE_DIR, 'layout/static/layout'),
+#     os.path.join(BASE_DIR, '/static/'),
 # ]
 
 # Default primary key field type
