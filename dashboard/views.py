@@ -11,7 +11,7 @@ def main(request):
     context = {
         'categ': mvm.categ,
     }
-    return render(request,'layout/dashboard/main.html',context)
+    return render(request,'dashboard/main.html',context)
 
 
 def rankings(request):
@@ -20,7 +20,7 @@ def rankings(request):
         'sidebar': rvm.sidebar(),
         'main': rvm.main(request),
     }
-    return render(request,'layout/dashboard/rankings.html',context)
+    return render(request,'dashboard/rankings.html',context)
 
 
 
@@ -31,8 +31,4 @@ def stkrpt(request):
         'corp': svm.corp,
         'fs_viewer': svm.fs_viewer(),
     }
-    return render(request,'layout/dashboard/stkrpt.html',context)
-
-
-def vdataControl(request):
-    return render(request,'layout/dashboard/vdataControl.html')
+    return render(request,'dashboard/stkrpt.html',context)

@@ -28,11 +28,11 @@ with open('.etc/secret_key.txt') as f:
 # SECURITY WARNING: don't run with debug turned on in production!
 
 # for dev in local
-# DEBUG = True
+DEBUG = True
 
 #
-DEBUG = False
-ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
+# DEBUG = False
+# ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
 
 # Application definition
@@ -90,7 +90,7 @@ ROOT_URLCONF = 'ggquant.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'layout' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

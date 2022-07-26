@@ -16,10 +16,10 @@ def main(request):
             'frq': FRQ_CHOICES_DICT,
         }
     }
-    return render(request,'layout/datalib/main.html',context)
+    return render(request,'datalib/main.html',context)
 
 def query(request):
     context = {
         'form': DataQueryForm()
     }
-    return render(request,'layout/datalib/query.html',context)
+    return render(request,'datalib/query.html',context)

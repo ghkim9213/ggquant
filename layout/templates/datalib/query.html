@@ -1,0 +1,57 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}Data Library{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/bootstrap-select.css'%}">
+{% endblock %}
+
+{% block content %}
+<p>to-do list</p>
+<ul>
+  <li>remodel dashboard more djangoly</li>
+  <li>find choice field for selecting corporates</li>
+</ul>
+<div id="data-query-form">
+  <form action="">
+    <!-- <select name="" id="" class="selectpicker">
+      <option value="">a</option>
+      <option value="">b</option>
+      <option value="">c</option>
+    </select> -->
+    <div class="mb-3">
+      {{ form.queryType.label_tag }}
+      {{ form.queryType }}
+    </div>
+    <div class="mb-3" v-if="queryType === '00'">
+      {{ form.stkSelectAll.label_tag }}
+      {{ form.stkSelectAll }}
+    </div>
+    <div class="mb-3" v-if="stkSelectAll === '03'">
+      {{ form.stkSelect.label_tag }}
+      {{ form.stkSelect }}
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/bootstrap-select.js' %}"></script>
+<script>
+  $('.selectpicker').selectpicker('refresh');
+
+  Vue.createApp({
+    data() {
+      return {
+        queryType: null,
+        stkSelectAll: null,
+        // stkSelect: null,
+      }
+    },
+    methods: {
+    }
+  }).mount('#data-query-form');
+</script>
+<script>
+</script>
+{% endblock %}

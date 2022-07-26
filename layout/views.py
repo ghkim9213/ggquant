@@ -4,10 +4,7 @@ import json
 # Create your views here.
 
 def home(request):
-    return render(request, 'layout/home.html')
+    with open('readme.md') as f:
+        readme = f.read()
 
-
-def about(request):
-    with open('layout/static/layout/md/about.md') as f:
-        lines = ''.join(f.readlines())
-    return render(request, 'layout/about.html', {'md':lines})
+    return render(request, 'home.html', {'readme': readme})

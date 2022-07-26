@@ -25,4 +25,4 @@ urlpatterns = [
     path('', include('dashboard.urls')),
     path('', include('wiki.urls')),
     path('', include('datalib.urls')),
-] # + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]

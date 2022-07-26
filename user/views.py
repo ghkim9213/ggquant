@@ -28,8 +28,8 @@ def signup(request):
             return redirect('/')
         else:
             error = 'failed to password verification.'
-            return render(request, 'layout/user/signup.html', {'error':error})
-    return render(request,'layout/user/signup.html')
+            return render(request, 'user/signup.html', {'error':error})
+    return render(request,'user/signup.html')
 
 def signin(request):
     if request.method == 'POST':
@@ -44,9 +44,9 @@ def signin(request):
             context = {
                 'error': 'email or password is incorrect.'
             }
-            return render(request,'layout/user/signin.html',context)
+            return render(request,'user/signin.html',context)
     else:
-        return render(request,'layout/user/signin.html')
+        return render(request,'user/signin.html')
 
 def signout(request):
     auth.logout(request)

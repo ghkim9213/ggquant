@@ -41,7 +41,7 @@ def main(request):
         'alphabet': alphabet,
         'jaum': jaum,
     }
-    return render(request,'layout/wiki/main.html',context)
+    return render(request,'wiki/main.html',context)
 
 
 def editor(request):
@@ -57,7 +57,7 @@ def editor(request):
             'wf': wf,
             'rh': rh,
         }
-        return render(request,'layout/wiki/editor.html',context)
+        return render(request,'wiki/editor.html',context)
 
 # create
 def create(request):
@@ -120,7 +120,7 @@ def create(request):
             'artclChoices': json.dumps(ARTICLE_FIELD_CHOICES_DICT),
             'form': ArticleForm(),
         }
-        return render(request,'layout/wiki/createArticle.html',context)
+        return render(request,'wiki/createArticle.html',context)
 
 # # read
 # def read(aid):
@@ -167,7 +167,7 @@ def article(request, aid):
             'artclChoices': ARTICLE_FIELD_CHOICES_DICT,
             # 'history': a.history.all().order_by('-updated_at'),
         }
-    return render(request,'layout/wiki/article.html',context)
+    return render(request,'wiki/article.html',context)
 
 
 def ord2strord(num):
@@ -231,7 +231,7 @@ def historyDetail(request,aid,order):
                 tofile = 'current kwds',
             )).replace('\n\n','\n'),
         }
-    return render(request, 'layout/wiki/articleHistoryDetail.html',context)
+    return render(request, 'wiki/articleHistoryDetail.html',context)
 
 # request = {
 #     'dfrom': ['headword','history'],

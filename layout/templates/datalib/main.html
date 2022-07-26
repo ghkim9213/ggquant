@@ -1,0 +1,124 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}Data Library{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/bootstrap-duallistbox.css'%}">
+<link rel="stylesheet" href="{% static 'css/bootstrap-datepicker.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <form class="formbox" id="stkDataQueryForm">
+
+    <div class="mb-3">
+      <label for="univChoices" class="form-label">시장구분</label>
+      <div id="univChoices">
+        {% for k, v in form_data.univ.items %}
+        <div class="form-check form-check-inline">
+          <input type="radio" class="form-check-input" id="{{ k }}" name="univSelected" value="{{ k }}" v-model="selected.univ">
+          <label for="{{ k }}" class="form-check-label">{{ v.labelKor }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="stkSelectAllChoices" class="form-label">종목</label>
+      <div id="stkSelectAllChoices">
+        {% for k, v in form_data.ssall.items %}
+        <div class="form-check form-check-inline">
+          <input type="radio" class="form-check-input" id="{{ k }}" value="{{ v.value }}" name="ssAllSelected" v-model="selected.ssAll">
+          <label for="{{ k }}" class="form-check-label">{{ v.labelKor }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-3" id="selectStkBox">
+      <select name="stkSelected" id="selectStkBox" multiple size="10">
+        {% for v in form_data.stk %}
+        <option value="{{ v.stockCode }}">{{ v.corpName }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="periodChoices" class="form-label">기간</label>
+      <div id="periodChoices">
+        {% for k, v in form_data.prd.items %}
+        <div class="form-check form-check-inline">
+          <input type="radio" class="form-check-input" id="{{ k }}" value="{{ k }}" name="prdSelected" v-model="selected.prd">
+          <label for="{{ k }}" class="form-check-label">{{ v.labelKor }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="mb-3" v-if="selected.prd == 'prdPick'">
+      <label for="fromDate" class="form-label">시작일</label>
+      <input type="text" name="fromDate" id="fromDate">
+      <label for="toDate" class="form-label">종료일</label>
+      <input type="text" name="toDate" id="toDate">
+    </div>
+
+    <div class="mb-3">
+      <label for="freqChoices" class="form-label">빈도</label>
+      <div id="freqChoices">
+        {% for k, v in form_data.frq.items %}
+        <div class="form-check form-check-inline">
+          <input type="radio" class="form-check-input" id="{{ k }}" value="{{ k }}" name="frqSelected" v-model="selected.frq">
+          <label for="{{ k }}" class="form-check-label">{{ v.labelKor }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <a href="/datalib/query/"><button class="btn btn-success" role="submit">Get data</button></a>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/jquery.bootstrap-duallistbox.js' %}"></script>
+<script src="{% static 'js/bootstrap-datepicker.ko.min.js' %}" charset="UTF-8"></script>
+<!-- <script src="{% static 'js/bootstrap-datepicker.js' %}"></script> -->
+<script>
+  Vue.createApp({
+    data() {
+      return {
+        selected: {
+          univ: null,
+          ssAll: null,
+          stk: null,
+          prd: null,
+          frq: null,
+          items: null,
+        }
+      }
+    },
+    methods: {
+
+    }
+  }).mount('#stkDataQueryForm')
+</script>
+<script>
+  $('#selectStkBox').bootstrapDualListbox();
+</script>
+<script>
+  $('#fromDate').datepicker({
+    format: 'yyyy-mm-dd',
+    autoclose: true,
+    title: '시작일',
+    language: 'ko',
+  });
+  $('#toDate').datepicker({
+    format: 'yyyy-mm-dd',
+    autoclose: true,
+    title: '종료일',
+    language: 'ko',
+  });
+</script>
+
+{% endblock %}

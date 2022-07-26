@@ -1,0 +1,153 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}Create Article{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/wiki-article.css' %}">
+{% endblock %}
+
+{% block content%}
+
+
+<div class="container py-4">
+  <div id="article-editor-create">
+    {%  include './articleEditor.html' %}
+  </div>
+</div>
+{{ artclAll }}
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'node_modules/marked/marked.min.js' %}"></script>
+<script src="{% static 'node_modules/katex/dist/katex.min.js'%}"></script>
+<script src="{% static 'js/katex-renderer.js' %}"></script>
+
+<script>
+  const defaultMsg = {
+    field: '필수: 분류 선택',
+    fieldname: '선택: 분류 직접 입력',
+    title: '필수: 128자 이내',
+    definition: '필수: Markdown, MathJax 지원',
+    description: '선택: Markdown, MathJax 지원',
+    keywords: '선택: "," 구분자로 작성. 예를 들어, "keyword1, keyword2, keyword3"'
+  }
+
+  const cuType = "{{ cuType | escapejs }}"
+
+  titleInput = document.getElementById("article-input-title")
+
+  if ( cuType === "waitingFor" ) {
+    defaultTitle = "{{ data.name | escapejs }}"
+    titleIsValid = true
+    titleInput.setAttribute("readonly","readonly")
+    titleInput.setAttribute("value",defaultTitle)
+    // console.log('value should be set')
+    // document.getElementById("article-input-title").setAttribute("disabled","true")
+    // document.getElementById("article-input-title").setAttribute("value",defaultTitle)
+  } else {
+    defaultTitle = null
+    titleIsValid = false
+    titleInput.setAttribute("v-model","title.value")
+  }
+  const artclAll = JSON.parse("{{ artclAll | escapejs }}")
+  const artclChoices = JSON.parse("{{ artclChoices | escapejs }}")
+
+  Vue.createApp({
+    data() {
+      return {
+        field: {
+          value: null,
+          isValid: false,
+          msg: defaultMsg.field,
+        },
+        fieldname: {
+          value: null,
+          isValid: null,
+          msg: defaultMsg.fieldname,
+        },
+        title: {
+          value: defaultTitle,
+          isValid: titleIsValid,
+          msg: defaultMsg.title,
+        },
+        definition: {
+          value: null,
+          isValid: false,
+          msg: defaultMsg.definition,
+        },
+        description: {
+          value: null,
+          isValid: null,
+          msg: defaultMsg.description,
+        },
+        keywords: {
+          value: null,
+          isValid: null,
+          msg: defaultMsg.keywords,
+        },
+        isDisabledButton: null,
+      }
+    },
+    computed: {
+      compiledMarkdown() {
+        return marked.parse(
+        `${this.definition.value}\n\n\n*keywords: ${this.keywords.value}*\n\n---\n\n${this.description.value}`
+        )
+      },
+      checkForm() {
+        this.isDisabledButton = !(
+          this.field.isValid
+          && this.title.isValid
+          && this.definition.isValid
+        )
+      }
+    },
+    methods: {
+      getFieldname(){
+        if (this.field.value !== '99') {
+          this.fieldname.value = artclChoices[this.field.value]
+        } else {
+          this.fieldname.value = null
+        }
+      },
+      checkFieldForm() {
+        if (this.field.value !== null) {
+          this.field.isValid = true
+          this.field.msg = "필수: 선택 완료"
+        } else {
+          this.field.isValid = true
+          this.field.msg = defaultMsg.div
+        }
+      },
+      checkFieldnameForm() {
+      },
+      checkTitleForm() {
+        if (this.title.value === null) {
+          this.title.isValid = false
+          this.title.msg = defaultMsg.title
+        } else if (this.title.value.length > 128) {
+          this.title.isValid = false
+          this.title.msg = "너무 긴 표제어입니다. 128자 이내로 작성바랍니다."
+        } else if (artclAll.includes(`${this.fieldname.value}:${this.title.value}`.toLowerCase())) {
+          this.title.isValid = false
+          this.title.msg = "이미 분류내 해당 표제어에 대한 게시글이 존재합니다."
+        } else {
+          this.title.isValid = true
+          this.title.msg = defaultMsg.title
+        }
+      },
+      checkDefinitionForm() {
+        if (this.definition.value === null) {
+          this.definition.isValid = false
+        } else {
+          this.definition.isValid = true
+        };
+      },
+      checkDescriptionForm() {
+      },
+      checkKeywordsForm() {
+      }
+    }
+  }).mount("#article-editor-create")
+</script>
+{% endblock %}

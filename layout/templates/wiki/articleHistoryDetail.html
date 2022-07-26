@@ -1,0 +1,127 @@
+{% extends '../index.html' %}
+{% load static %}
+{% block title %}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="mb-3" id="history-detail-header">
+    <div class="d-flex justify-content-between">
+      <button class="btn btn-lg" {% if ord.start %}disabled{% endif %}>
+        <a class="text-secondary text-decoration-none" href="/wiki/{{ data.article.id }}/{{ ord.prev }}">
+          <i class="bi bi-chevron-left"></i>Previous
+        </a>
+      </button>
+      <div class="btn fs-3 fw-bold">{{ ord.strord }} Edition</div>
+      <button class="btn btn-lg text-secondary" {% if ord.end %}disabled{% endif %}>
+        <a href="/wiki/{{ data.article.id }}/{{ ord.next }}" class="text-secondary text-decoration-none">
+          Next<i class="bi bi-chevron-right"></i>
+        </a>
+      </button>
+    </div>
+  </div>
+  <div id="history-detail-body">
+    <div class="mb-5" id="history-detail-meta">
+      <table class="table table-hover">
+        <tr>
+          <th>Editor</th>
+          <td>{{ data.editor.username }}</td>
+        </tr>
+        <tr>
+          <th>{% if data.is_draft %}Created at{% else %}Updated at{% endif %}</th>
+          <td>{{ data.updated_at }}</td>
+        </tr>
+        <tr>
+          <th>Abstract</th>
+          <td>{{ data.abstract }}</td>
+        </tr>
+        <tr>
+          <th>Size (delta)</th>
+          <td>{{ size.curr | floatformat:2 }}KB ({% if size.delta > 0 %}+{%else%}{% endif %}{{ size.delta | floatformat:2 }}KB)</td>
+        </tr>
+      </table>
+    </div>
+    {% if ord.numord != 1 %}
+    <div class="mb-5" id="history-detail-change">
+      <h3 class="text-secondary mb-3">Details</h3>
+      <div id="change-in-definition" v-html="changeInDefinition"></div>
+      <div id="change-in-description" v-html="changeInDescription"></div>
+      <div id="change-in-keywords" v-html="changeInKeywords"></div>
+    </div>
+    {% endif %}
+    <div id="article-viewer">
+      {% include './articleViewer.html' %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block cssend %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
+{% endblock %}
+
+{% block js %}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
+<script>
+  Vue.createApp ({
+    data() {
+      return {
+        diffs: {
+          definition: "{{ diff.definition | escapejs }}",
+          description: "{{ diff.description | escapejs }}",
+          keywords: "{{ diff.keywords | escapejs }}"
+        }
+      };
+    },
+    computed: {
+      changeInDefinition() {
+        return Diff2Html.html(this.diffs.definition, {
+          drawFileList: false,
+          matching: 'lines',
+        });
+      },
+      changeInDescription() {
+        return Diff2Html.html(this.diffs.description, {
+          drawFileList: false,
+          matching: 'lines',
+        });
+      },
+      changeInKeywords() {
+        return Diff2Html.html(this.diffs.keywords, {
+          drawFileList: false,
+          matching: 'lines',
+        });
+      },
+    },
+  }).mount("#history-detail-change");
+</script>
+<script>
+  function changeCHeader(cid) {
+    cHeader = document.getElementById(cid);
+    try {
+      cHeader.getElementsByClassName("d2h-file-name")[0].innerHTML = cid.split('-').slice(-1)[0]
+      cHeader.getElementsByClassName("d2h-tag")[0].remove()
+    } catch (e) {
+    }
+  };
+  changeCHeader("change-in-definition");
+  changeCHeader("change-in-description");
+  changeCHeader("change-in-keywords");
+  // const cdefHeader = document.getElementById("change-in-definition")
+  // cdefHeader.getElementsByClassName("d2h-file-name")[0].innerHTML = "definition"
+  // cdefHeader.getElementsByClassName("d2h-tag")[0].remove()
+
+  // cdefHeader.innerHTML = "Definition"
+  // nameInHeaders[0].innerText = "Definition"
+  // console.log(document.getElementById("change-in-definition"))
+</script>
+
+<script src="{% static 'node_modules/marked/marked.min.js' %}"></script>
+<script src="{% static 'node_modules/katex/dist/katex.min.js'%}"></script>
+<script src="{% static 'js/katex-renderer.js' %}"></script>
+<script>
+  document.getElementById("article-body-definition").innerHTML =
+    marked.parse("{{ data.definition | escapejs }}")
+    document.getElementById("article-body-description").innerHTML =
+      marked.parse("{{ data.description | escapejs }}")
+</script>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends '../index.html' %}
+{% load static %}
+{% load humanize %}
+{% block title %}Dashboard-Stock Reports{% endblock %}
+
+{% block css %}
+<!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css"> -->
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+<!-- search banner   -->
+<div class="py-lg-5">
+  <div class="jumbotron text-center">
+    <h1 class="display-4">Find your own insight!</h1>
+    <div class="d-flex flex-row justify-content-center">
+      <form method="post" class="py-3 col-md-4 col-lg-4" id="corpSearchForm" onsubmit="return convertToStockCode()">
+        {% csrf_token %}
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input class="form-control form-control-lg" id="corpSelected" name="stock_code" type="text" type="search" placeholder="Search">
+        </div>
+        <!-- <div class="autoComplete_wrapper"> -->
+            <!-- <input type="hidden" name="search_corp" value="true"> -->
+          <!-- <input id="corpSelectedName" type="search" dir="ltr" spellcheck=false autocorrect="on" autocomplete="on" autocapitalize="off" name="stock_code"> -->
+        <!-- </div> -->
+      </form>
+    </div>
+    <p class="lead">Don't forget to pray.</p>
+  </div>
+</div>
+
+<hr class="my-4">
+
+<!-- report -->
+<div class="py-lg-3">
+
+<!-- report header -->
+<div class="mb-4" id="stkrpt-header">
+  <div class="row">
+    <div class="col-md-9 col-lg-9">
+      <h1>{{corp.corpName}} ({{corp.stockCode}})</h1>
+    </div>
+    <!-- <div class="col-md-3 col-lg-3 text-right">
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Save as
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <a class="dropdown-item" href="#">Action</a>
+          <a class="dropdown-item" href="#">Another action</a>
+          <a class="dropdown-item" href="#">Something else here</a>
+        </div>
+      </div>
+    </div>
+  </div> -->
+  <table id="corpInfo" class="table table-hover">
+    <tr>
+      <th>상장구분</th>
+      <td>{{ corp.market }}</td>
+      <th>상장일</th>
+      <td>{{ corp.listedAt }}</td>
+    </tr>
+
+    <tr>
+      <th>CEO</th>
+      <td>{{ corp.ceo }}</td>
+      <th>결산월</th>
+      <td>{{ corp.fye }}</td>
+    </tr>
+    <tr>
+      <th>업종</th>
+      <td>{{ corp.industry }}</td>
+      <th>홈페이지</th>
+      <td><a href="{{ corp.homepage }}" class="text-decoration-none">{{ corp.homepage }}</a></td>
+    </tr>
+    <tr>
+      <th>주요 상품</th>
+      <td colspan="3">{{ corp.product }}</td>
+    </tr>
+  </table>
+</div>
+
+<div id="fsViewer">
+  <div class="mb-4">
+    <p class="fw-bold">재무제표 조회</p>
+    <div class="formbox">
+      {% if fs_viewer.fs_list == None %}
+      <p class="text-center text-muted fs-2">조회 가능한 재무제표가 존재하지 않습니다.</p>
+      {% else %}
+      <form method="post" id="fsQueryForm" class="mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="stock_code" value="{{ corp.stockCode }}">
+        <input type="hidden" name="fsFilter" value="true">
+        <!-- <input type="hidden" name=""> -->
+        <div class="input-group mb-3">
+          <span class="input-group-text col-md-2">구분</span>
+          <div class="form-control col-md-10">
+            <div class="form-check form-check-inline col-md-10" v-for="c in choices.ftnm">
+              {% verbatim %}
+              <input type="radio" name="ftnm_selected" v-bind:value="c" v-model="selected.ftnm" @change="validateQuery">
+              <!-- <input type="radio" name="ftnm_selected" v-bind:value="c" v-model="selected.ftnm" @change="validateQuery"> -->
+              <label> {{ c }} </label>
+              {% endverbatim %}
+            </div>
+          </div>
+        </div>
+
+        <div class="input-group mb-3">
+          <span class="input-group-text col-md-2">회계연도</span>
+          <div class="form-control col-md-10">
+            <div class="form-check form-check-inline col-md-10" v-for="c in choices.by">
+              {% verbatim %}
+              <input type="radio" name="by_selected" v-bind:value="c" v-model="selected.by" @change="validateQuery">
+              <label> {{ c }} </label>
+              {% endverbatim %}
+            </div>
+          </div>
+        </div>
+
+        <div class="input-group mb-3">
+          <span class="input-group-text col-md-2">분기</span>
+          <div class="form-control col-md-10">
+            <div class="form-check form-check-inline col-md-10" v-for="c in choices.bq">
+              {% verbatim %}
+              <input type="radio" name="bq_selected" v-bind:value="c" v-model="selected.bq" @change="validateQuery">
+              <label> {{ c }}분기 </label>
+              {% endverbatim %}
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" role="submit" v-if="isValid">조회</button>
+        <div v-else>
+          <button class="btn btn-primary" disabled v-else>조회</button>
+          {% verbatim %}<span class="inline text-danger">*{{ message }}</span>{% endverbatim %}
+        </div>
+      </form>
+      {% endif %}
+      {% if fs_viewer.treeview_data != None %}
+      <table id="fs" class="table table-secondary table-striped">
+        <thead>
+          <th scope="col">{{ fs_viewer.treeview_data.title }}</th>
+          <th scope="col" class="text-end">
+            <div class="btn-group" role="group">
+              <button id="expander" type="button" class="btn btn-secondary btn-sm">모두 펼치기</button>
+              <button id="collapser" type="button" class="btn btn-outline-secondary btn-sm">모두 접기</button>
+            </div>
+          </th>
+        </thead>
+        <tbody>
+          {% for fd in fs_viewer.treeview_data.data %}
+          <tr data-node-id="{{ fd.idt }}" data-node-pid="{{ fd.pidt }}">
+            <td>{{ fd.obj.labelKor }} {% if fd.obj.is_standard is not True %}*{% endif %}</td>
+            {% if fd.obj.value != None %}
+            <td class="text-end">{{ fd.obj.value | intcomma }} {{ fd.obj.currency }}</td>
+            {% else %}
+            <td></td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+
+
+
+</div>
+
+{% endblock %}
+
+{% block js %}
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" integrity="sha256-eTyxS0rkjpLEo16uXTS0uVCS4815lc40K2iVpWDvdSY=" crossorigin="anonymous"></script>
+<script>
+  const searchData = JSON.parse("{{ search_data | escapejs }}");
+  $("#corpSelected").autocomplete({
+      source: Object.keys(searchData),
+      minLength: 2,
+      // autoFocus: true,
+  });
+  function convertToStockCode() {
+    var corpSelected = document.getElementById("corpSelected")
+    var corpName = corpSelected.value
+    if (Object.keys(searchData).includes(corpName)) {
+      // console.log(corpName)
+      corpSelected.value = searchData[corpName];
+      return true;
+    } else {
+      alert('no such stock')
+      return false;
+    }
+    // console.log(selectedCorp.value)
+  }
+</script>
+<script>
+  const fsAll = JSON.parse("{{ fs_viewer.fs_list | escapejs }}")
+  Vue.createApp({
+    data() {
+      return {
+        fsAll: fsAll,
+        choices: {
+            ftnm: [... new Set(fsAll.map(x => x.ftnm))],
+            // labelKor: [... new Set(fsAll.map(x => x.label_kor))],
+            by: [... new Set(fsAll.map(x => x.by))],
+            bq: [... new Set(fsAll.map(x => x.bq))],
+        },
+        selected: {
+          ftnm: null,
+          by: null,
+          bq: null,
+        },
+        isValid: false,
+        message: '모든 항목을 선택하세요.',
+      }
+    },
+    methods: {
+      validateQuery() {
+        allChecked = !Object.values(this.selected).includes(null)
+        fsExists = this.fsAll.some( x =>
+          JSON.stringify(this.selected) === JSON.stringify(x)
+        )
+        this.isValid =  allChecked && fsExists
+        if ( this.isValid ) {
+          this.message = null
+        } else if ( !allChecked ) {
+          this.message = '모든 항목을 체크하세요'
+        } else if ( !fsExists ) {
+          this.message = '해당 재무제표가 존재하지 않습니다.'
+        }
+      },
+    }
+  }).mount("#fsQueryForm")
+</script>
+
+<script src="{% static 'js/jquery-simple-tree-table.js' %}"></script>
+<script>
+  $('#fs').simpleTreeTable({
+    expander: $('#expander'),
+    collapser: $('#collapser'),
+  });
+</script>
+{% endblock %}

@@ -37,14 +37,14 @@ def categories(request):
                 '분석결과를 보고서 형식으로 게시합니다',
             ],
         },
-        'datalib': {
-            'name': 'datalib',
-            'url': '/datalib',
+        'ggdb': {
+            'name': 'ggdb',
+            'url': '/ggdb',
             'icon': 'bi bi-cloud-download-fill',
             'disabled': False,
             'helptext': [
-                '데이터베이스에 등재된 데이터를 요청하고 다운로드합니다',
-                '데이터베이스에 접근 가능한 python module의 사용권한과 매뉴얼을 제공합니다'
+                '공유 데이터베이스에 등재된 데이터를 요청하고 다운로드합니다',
+                '공유 데이터베이스에 접근 가능한 python module의 사용권한과 매뉴얼을 제공합니다'
             ],
         },
     }}
