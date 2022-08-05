@@ -1,0 +1,30 @@
+.big-table {
+  /* width: 100%; */
+  max-height: 80vh;
+  overflow-x: auto;
+}
+
+/* .table-fixed {
+  width: 100%;
+  max-height: 400px;
+} */
+
+/*This will work on every browser but Chrome Browser*/
+.table-fixed thead {
+  position: sticky;
+  position: -webkit-sticky;
+  top: 0;
+  z-index: 999;
+  background-color: #fff;
+  color: #000;
+}
+
+/*This will work on every browser*/
+/* .table-fixed thead th {
+    position: sticky;
+    position: -webkit-sticky;
+    top: 0;
+    z-index: 999;
+    background-color: #fff;
+    color: #000;
+} */

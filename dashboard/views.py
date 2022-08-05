@@ -1,5 +1,5 @@
 from .viewmanagers.main import *
-from .viewmanagers.rankings import *
+from .viewmanagers.indicators import *
 from .viewmanagers.stkrpt import *
 
 from django.shortcuts import render
@@ -14,13 +14,13 @@ def main(request):
     return render(request,'dashboard/main.html',context)
 
 
-def rankings(request):
-    rvm = RankingsViewManager()
+def indicators(request):
+    rvm = IndicatorsViewManager()
     context = {
         'sidebar': rvm.sidebar(),
         'main': rvm.main(request),
     }
-    return render(request,'dashboard/rankings.html',context)
+    return render(request,'dashboard/indicators.html',context)
 
 
 

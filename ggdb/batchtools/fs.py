@@ -1,25 +1,22 @@
-from bs4 import BeautifulSoup
-from collections import Counter
-from dashboard.models import *
-from django.forms.models import model_to_dict
-from io import BytesIO
+from .scrappers import *
+from ggdb.models import *
 from itertools import islice
 
-import datetime, json, os, requests, zipfile, time
+import datetime
 import pandas as pd
 
 
 class FsTree:
 
     def __init__(self, ftnm):
-        self.fs_version_all = ['20130331', '20171001', '20180720', '20191028']
+        self.FS_VERSION_ALL = ['20130331', '20171001', '20180720', '20191028']
         self.ftnm = ftnm
-        self._all = None
+        self._tree_all = None
 
-    def collect_all(self):
+    def collect_trees_by_version(self):
         colnames = ['indent','label_eng', 'label_kor', 'dtype', 'ifrs_ref', 'acnt_id', 'acnt_nm']
         tree_all = []
-        for vs in self.fs_version_all:
+        for vs in self.FS_VERSION_ALL:
             df = pd.read_excel(f'source/acnt/kifrs_account_trees_{vs}.xlsx', sheet_name=self.ftnm)
             df.columns = colnames
             df = df.loc[~df.acnt_id.isnull()].reset_index(drop=True)
@@ -33,15 +30,15 @@ class FsTree:
                     'label_kor': row['label_kor'].strip()
                 } for row in df.to_dict(orient='records')
             })
-        self._all = tree_all
+        self._tree_all = tree_all
 
     def get_dominant_tree(self):
-        dominant = self._all[-1].copy()
-        oldest = self._all[0].copy()
+        dominant = self._tree_all[-1].copy() # latest version
+        oldest = self._tree_all[0].copy()
         acnt_nm_dom = [a.lower() for a in dominant.keys()]
         acnt_nm_diff = [a for a in oldest.keys() if a.lower() not in acnt_nm_dom]
         for acnt_nm in acnt_nm_diff:
-            ancestor_all = get_all_ancestor(acnt_nm,oldest,[])
+            ancestor_all = get_ancestor_all(acnt_nm,oldest,[])
             find, pnm = False, None
             for ancestor in ancestor_all:
                 if ancestor in dominant.keys():
@@ -90,11 +87,11 @@ def get_parent_names(df):
     return pnms
 
 
-def get_all_ancestor(acnt_nm, tree, prev_result):
+def get_ancestor_all(acnt_nm, tree, prev_result):
     pnm = tree[acnt_nm]['pnm']
     if pnm != None:
         prev_result.append(pnm)
-        return get_all_ancestor(pnm, tree, prev_result)
+        return get_ancestor_all(pnm, tree, prev_result)
     else:
         return prev_result
 
@@ -148,7 +145,7 @@ class OpendartFileManager:
 
     def update(self):
         print('updating opendart_file data...')
-        fnm_all = [fnm for fnm in get_odfnm_today() if 'CE' not in fnm]
+        fnm_all = [fnm for fnm in scrap_opendart_filename_all() if 'CE' not in fnm]
         new_data_list = [fnm[:-4].split('_') for fnm in fnm_all]
         new_data = [{
             'by': int(by),
@@ -192,15 +189,6 @@ class OpendartFileManager:
         print('...update complete!')
 
 
-def get_odfnm_today():
-    url = 'https://opendart.fss.or.kr/disclosureinfo/fnltt/dwld/list.do'
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, 'html.parser')
-    atags = soup.find('table','tb01').find_all('a')
-    get_filename = lambda a: a['onclick'][a['onclick'].find('(')+1:a['onclick'].find(')')].split(', ')[-1][1:-1]
-    return [get_filename(a) for a in atags]
-
-
 class FsAccountManager:
 
     def __init__(self):
@@ -211,7 +199,6 @@ class FsAccountManager:
     def update(self):
         if FsAccount.objects.all().exists():
             print('no update for the model FsAccount.')
-            # raise ValueError('fsaccount already exists. please reset the table before update.')
         else:
             print('updating fsaccount data...')
             obj_all = []
@@ -219,7 +206,7 @@ class FsAccountManager:
             for ftid, ftnm in self.ftid2ftnm.items():
                 print(f'...generating fstree for {ftnm}')
                 fstree = FsTree(ftnm)
-                fstree.collect_all()
+                fstree.collect_trees_by_version()
                 dominant = fstree.get_dominant_tree()
                 acnt_nm2faid = {}
                 for k, v in dominant.items():
@@ -227,7 +214,6 @@ class FsAccountManager:
                         'id': faid,
                         'type_id': ftid,
                         'accountNm': k,
-                        # 'accountId': v['acnt_id'],
                         'parent_id': acnt_nm2faid[v['pnm']] if v['pnm'] != None else None,
                         'labelEng': v['label_eng'],
                         'labelKor': v['label_kor'],
@@ -243,7 +229,6 @@ class FsManager:
     def __init__(self, odf):
         self.odf = odf
         self._details = None
-        # pass
 
     def update(self, **kwargs):
         print(f"updating fs data from {self.odf.filename}...")
@@ -277,9 +262,7 @@ class FsManager:
                 if dd['accountId'] not in dd_acnt_id_uniq:
                     dd_acnt_id_uniq.append(dd['accountId'])
                     dd_uniq.append(dd)
-                # else:
-                #     d['details'].remove(dd)
-                # dd['accountId']
+
             self._details += [{
                 'fs_id': new_fs.id if fs == None else fs.id,
                 'type_id': d['type_id'],
@@ -296,13 +279,11 @@ class FsManager:
 
     def update_details(self):
         print(f"updating fsdetail data from {self.odf.filename}...")
-        # if Fs.objects.all().exists():
         if self._details == None:
             raise ValueError('update() should be preceded to update_details().')
 
         acnt_odf = FsAccount.objects.select_related('type').filter(type__type=self.odf.type)
         comb2fa = {(fa.accountNm.lower(), fa.type.id): fa for fa in acnt_odf}
-        # is_first_update = not FsDetail.objects.all().exists()
         for fd in self._details:
             ftid = fd.pop('type_id')
             if not fd['accountId'].startswith('entity'):

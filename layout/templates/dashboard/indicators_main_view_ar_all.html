@@ -1,0 +1,71 @@
+{% load static %}
+<!-- <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap5.css' %}"> -->
+<!-- <link rel="stylesheet" href="{% static 'css/fixedColumns.bootstrap5.min.css' %}"> -->
+<link rel="stylesheet" href="{% static 'css/tables.css' %}">
+<div class="container col-9 py-4">
+
+<div class="col-lg-12 col-md-12">
+  <h1 class="fw-light">재무비율 종합현황</h1>
+  <div class="text-muted">
+    <p class="lead">분기별 재무비율의 최근값을 전시합니다.</p>
+    <p class="fw-bold">주의사항</p>
+    <ul>
+      <li>모든 재무비율은 금융감독원 OPEN DART 재무정보일괄다운로드 서비스에 공개된 재무제표 데이터로부터 산출되었습니다. 정보 이용에 앞서 <a class="text-decoration-none" href="https://opendart.fss.or.kr/disclosureinfo/fnltt/dwld/main.do">OPEN DART 주의사항</a>을 숙지하시기 바랍니다.</li>
+      <li>
+        재무비율의 산출은 <a class="text-decoration-none" href="">오늘 KOSPI 및 KOSDAQ에 상장되어있는 종목들</a>을 대상으로 하며, 몇몇 종목은 다음의 이유로 대상에서 제외되었습니다.
+        <ul>
+          <li>OPEN DART 재무정보일괄다운로드 서비스가 제공하는 데이터에 해당 종목이 포함되지 않은 경우 (금융업 등)</li>
+          <li>데이터에 포함되어있으나 해당종목을 대상으로 산출된 모든 재무비율이 결측된 경우</li>
+        </ul>
+      </li>
+      <li><a class="text-decoration-none" href="">K-IFRS표준계정과목체계</a>를 따르지 않아 기업간 비교가능성이 낮은 계정은 비율 산출에서 제외되었습니다.</li>
+      <li>
+        결측치(테이블 상 '-'로 표기)는 다음의 이유로 발생되었습니다.
+        <ul>
+          <li>해당 기업이 재무비율 산출에 필요한 계정을 OPEN DART에 보고하지 않은 경우</li>
+          <li>해당 기업이 재무비율 산출에 필요한 계정을 상기 표준과 달리 보고한 경우</li>
+          <li>산출된 재무비율이 양 혹은 음의 무한대 값을 가지는 경우</li>
+        </ul>
+      </li>
+      <li>테이블 상 '결산기준일'의 값은 '(회계연도)q(분기)'의 형식으로 구성되어있으며, 해당 회계연도 해당 분기 말일을 의미합니다. 예를 들어, '2022q1'은 2022년도 1분기 말일을 나타냅니다.</li>
+      <li>테이블 상 변수명에 '변동율'을 포함하고 있는 지표 ('매출액 변동율', '영엽이익 변동율', '당기순이익 변동율', '총자산 변동율' 등)는 '(당기 값)/(전기 값)'의 비율을 나타냅니다. 예를 들어, 총자산 변동율이 0.95인 경우 당기 자산총계가 전기에 비해 5% 감소했음을, 반대로 1.05인 경우 5%증가했음을 나타냅니다.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- navtab -->
+<ul class="nav nav-tabs">
+  {% for k in main.data.keys %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if forloop.first %}active{% endif %}" id="{{ k }}-tab" data-bs-toggle="tab" data-bs-target="#{{ k }}" type="button" role="tab" aria-controls="{{ k }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+      {% if k|slice:":3" == 'CFS' %}연결{% else%}별도{% endif %}, {{ k|slice:"4:" }}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- table -->
+<div class="tab-content">
+  {% for k, v in main.data.items %}
+  <div class="tab-pane fade {% if forloop.first %}show active{% endif %} mt-4" id="{{ k }}" role="tabpanel" aria-labelledby="{{ k }}-tab">
+    <div class="big-table table-fixed">
+      <table class="table table-hover table-striped text-nowrap table-responsive">
+        <thead>
+          {{ v.header | safe }}
+        </thead>
+        <tbody>
+          {% for row in v.rows %}
+          <tr>
+            {% for d in row.values %}
+            <td>{% if d == None %}-{% else %}{{ d }}{% endif %}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+</div>

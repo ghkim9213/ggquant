@@ -1,12 +1,5 @@
 def categories(request):
     return {'categories': {
-        # 'home': {
-        #     'name': 'home',
-        #     'url': '/',
-        #     'icon': 'bi bi-house-door-fill',
-        #     'disabled': False,
-        #     'helptext': None,
-        # },
         'dashboard': {
             'name': 'dashboard',
             'url': '/dashboard',
@@ -17,16 +10,6 @@ def categories(request):
                 '항목별 실시간 순위를 전시합니다',
             ],
         },
-        'wiki': {
-            'name': 'wiki',
-            'url': '/wiki',
-            'icon': 'bi bi-mortarboard-fill',
-            'disabled': False,
-            'helptext': [
-                '자본시장관련 전반의 지식을 공유하는 오픈백과입니다',
-                '엄격한 인용정책을 준수하며, 주기적으로 전문가들에 의해 검토됩니다'
-            ],
-        },
         'datalab': {
             'name': 'datalab',
             'url': '/datalab',
@@ -35,6 +18,16 @@ def categories(request):
             'helptext': [
                 '데이터베이스에 등재된 데이터를 이용해 분석할 수 있는 python playground를 제공합니다',
                 '분석결과를 보고서 형식으로 게시합니다',
+            ],
+        },
+        'wiki': {
+            'name': 'wiki',
+            'url': '/wiki',
+            'icon': 'bi bi-mortarboard-fill',
+            'disabled': False,
+            'helptext': [
+                '자본시장관련 전반의 지식을 공유하는 오픈백과입니다',
+                '엄격한 인용정책을 준수하며, 주기적으로 전문가들에 의해 검토됩니다'
             ],
         },
         'ggdb': {

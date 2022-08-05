@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
 
+    # ggdb
+    'ggdb',
+
     #
     'layout',
 
@@ -172,10 +175,6 @@ USE_TZ = False
 
 STATIC_URL = 'static/'
 STATIC_ROOT = '/var/www/ggquant/static/'
-# STATIC_ROOT = 'layout/static'
-# STATICFILES_DIRS = [
-#     os.path.join(BASE_DIR, '/static/'),
-# ]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

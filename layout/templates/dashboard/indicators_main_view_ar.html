@@ -1,0 +1,50 @@
+{% load humanize %}
+<div class="container col-9 p-3">
+  <div class="row py-lg-5">
+    <div class="col-lg-12 col-md-12">
+      <h1 class="fw-light mb-3">지표별 분석: {{ main.account_ratio.labelKor }}</h1>
+      <div class="lead text-muted">
+        <p>'{{ main.account_ratio.labelKor }}'은 다음과 같이 정의됩니다:</p>
+        <p class="text-dark fs-6">$${{ main.account_ratio.syntax_katex }}.$$</p>
+      </div>
+    </div>
+  </div>
+  <div class="row py-lg-5 align-items-md-stretch">
+    {% for k, v in main.data.items %}
+    <div class="col-md-12 p-2">
+      <div class="h-100 p-5 bg-light border rounded-3">
+        <h2 class="mb-3">{% if k|slice:":3" == 'CFS' %}연결{% else %}별도{% endif %}, {{ k|slice:"4:" }}</h2>
+        <hr>
+        <p class="fw-bold">집계결과 요약</p>
+        <ul>
+          <li>{{ v.inspect.n_corp_all|intcomma }}개 상장종목 중 {{ v.inspect.missings|length | intcomma }}개 종목이 결측으로 인해 집계대상에서 제외되었습니다.</li>
+          {% if v.desc.outliers != None %}
+          <li>결측치를 제외한 {{ v.inspect.n_obs|intcomma }}개 종목 중 극단치를 보이는 것으로 판단되는 {{ v.desc.outliers|length | intcomma }}개 종목 (상하위 각 2.5%)이 집계 대상에서 제외되었습니다.</li>
+          {% endif %}
+          <li>이에 따라 총 {{ v.desc.desc.종목수|floatformat:"0" }}개 종목에 대한 집계결과를 확인할 수 있습니다.</li>
+        </ul>
+        <p class="fw-bold">분포 정보</p>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              {% for h in v.desc.desc.keys %}
+              <th>{{ h }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {% for r in v.desc.desc.values %}
+              <td>{% if forloop.first %}{{ r | floatformat:"0" }}{% else %}{{ r | floatformat:"4"}}{% endif %}</td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+        {% autoescape off %}
+        {{ v.hist }}
+        {% endautoescape %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

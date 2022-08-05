@@ -1,9 +1,9 @@
 {% extends '../index.html' %}
 {% load static %}
-{% block title %}Dashboard-rankings{% endblock %}
+{% block title %}Dashboard-indicators{% endblock %}
 {% block css %}
 <!-- <link rel="stylesheet" href="{% static 'css/docs.css' %}"> -->
-<link rel="stylesheet" href="{% static 'css/rankings-sidebar.css' %}">
+<link rel="stylesheet" href="{% static 'css/indicators-sidebar.css' %}">
 <link rel="stylesheet" href="{% static 'node_modules/katex/dist/katex.min.css' %}">
 {% endblock %}
 
@@ -11,14 +11,13 @@
 <!-- <div class="container-fluid p-0 bd-layout"> -->
 <div class="container-fluid p-0">
   <div class="row">
-    {% include './rankings_sidebar.html' %}
-    {% if main != None %}
-      {% if main.status == 'inspect' %}
-      {% include './rankings_main_inspect.html'%}
-      {% elif main.status == 'display_result' %}
-      {% include './rankings_main_display_result.html' %}
-      {% endif %}
-    {% else %}
+    {% include './indicators_sidebar.html' %}
+    {% if main.status == 'view_ar_all' %}
+      {% include './indicators_main_view_ar_all.html' %}
+    {% elif main.status == 'inspect' %}
+      {% include './indicators_main_inspect.html'%}
+    {% elif main.status == 'view_ar' %}
+      {% include './indicators_main_view_ar.html' %}
     {% endif %}
   </div>
 </div>

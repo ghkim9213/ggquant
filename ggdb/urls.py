@@ -18,9 +18,5 @@ from django.urls import path
 from dashboard import views
 
 urlpatterns = [
-    # path('', views.home),
     path('dashboard/', views.main),
-    path('dashboard/indicators', views.indicators),
-    path('dashboard/stkrpt', views.stkrpt),
-    # path('dashboard/backtests', views.backtests)
 ]
