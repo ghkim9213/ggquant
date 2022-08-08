@@ -21,6 +21,7 @@ def update_fs():
     odfm.update()
     t3 = time.time()
 
+    odfm._updated_file_all = OpendartFile.objects.filter(id__in=[334,335,336])
     if len(odfm._updated_file_all) > 0:
         for odf in odfm._updated_file_all:
             fsm = FsManager(odf)

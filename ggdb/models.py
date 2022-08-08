@@ -54,7 +54,7 @@ class CorpHistory(models.Model):
 HEADER_TGT = {
     # common fields
     '재무제표종류': 'rpt_type',
-    'stock_code': 'stock_code',
+    '종목코드': 'stock_code',
     '결산기준일': 'fqe',
     # '보고서종류': 'rpt_nm',
     '통화': 'currency',

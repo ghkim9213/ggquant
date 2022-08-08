@@ -31,7 +31,7 @@ with open('.etc/secret_key.txt') as f:
 # DEBUG = True
 
 #
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
 

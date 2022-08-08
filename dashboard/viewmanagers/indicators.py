@@ -80,9 +80,9 @@ class RecentAccountRatio:
             name = self.label_kor
         ))
         fig.update_layout(
-            autosize = False,
-            width = 500,
-            height = 400,
+            # autosize = False,
+            # width = 500,
+            # height = 400,
             paper_bgcolor='rgba(0,0,0,0)',
             # plot_bgcolor='rgba(0,0,0,0)',
             margin = dict(l=30,r=30,b=30,t=30),
