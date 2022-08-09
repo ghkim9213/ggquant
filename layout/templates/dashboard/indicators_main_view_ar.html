@@ -2,43 +2,47 @@
 <div class="container col-9 p-3">
   <div class="row py-3">
     <div class="col-lg-12 col-md-12">
-      <h1 class="fw-light mb-3">지표별 분석: {{ main.account_ratio.labelKor }}</h1>
+      <h1 class="fw-light mb-3">지표별 분석: {{ main.data.account_ratio.labelKor }}</h1>
       <div class="lead text-muted">
-        <p>'{{ main.account_ratio.labelKor }}'은 다음과 같이 정의됩니다:</p>
-        <p class="text-dark fs-6">$${{ main.account_ratio.syntax_katex }}.$$</p>
-        <p class="lead text-muted">{{ main.account_ratio.labelKor }}에 대한 위키가 존재합니다. {{ main.account_ratio.labelKor }}에 대해 더 자세히 알고 싶다면 위키를 확인해보세요: <a href="#" class="text-decoration-none">위키 열기</a>.</p>
-        <p class="lead text-muted">{{ main.account_ratio.labelKor }}에 대한 위키가 아직 작성되지 않았습니다: <a href="#" class="text-decoration-none">위키 작성하기</a>.</p>
+        <p>'{{ main.data.account_ratio.labelKor }}'은 다음과 같이 정의됩니다:</p>
+        <p class="text-dark fs-6">$${{ main.data.account_ratio.syntax_katex }}.$$</p>
+        <p class="lead text-muted">{{ main.data.account_ratio.labelKor }}에 대한 위키가 존재합니다. {{ main.data.account_ratio.labelKor }}에 대해 더 자세히 알고 싶다면 위키를 확인해보세요: <a href="#" class="text-decoration-none">위키 열기</a>.</p>
+        <p class="lead text-muted">{{ main.data.account_ratio.labelKor }}에 대한 위키가 아직 작성되지 않았습니다: <a href="#" class="text-decoration-none">위키 작성하기</a>.</p>
       </div>
     </div>
   </div>
   <div class="row align-items-md-stretch">
-    {% for k, v in main.data.items %}
+    {% for k, v in main.data.results.items %}
     <div class="col-md-12 p-3">
       <div class="h-100 p-5 bg-light border rounded-3">
         <h2 class="mb-3">{{ k|slice:"4:" }} ({% if k|slice:":3" == 'CFS' %}연결{% else %}별도{% endif %})</h2>
-        <p class="lead text-muted">{% now "Y-m-d"%} 04:00 현재 {{ k|slice:"4:" }} 상장종목의 최근 {% if k|slice:":3" == 'CFS' %}연결{% else %}별도{% endif %} 재무제표로부터 산출된 {{ main.account_ratio.labelKor }}의 기초분석결과입니다.</p>
+        <p class="lead text-muted">{% now "Y-m-d"%} 04:00 현재 {{ k|slice:"4:" }} 상장종목의 최근 {% if k|slice:":3" == 'CFS' %}연결{% else %}별도{% endif %} 재무제표로부터 산출된 {{ main.data.account_ratio.labelKor }}의 기초분석결과입니다.</p>
         <hr>
         <p class="fw-bold">데이터 요약</p>
         <ul>
-          <li>{{ v.inspect.n_corp_all|intcomma }}개 상장종목 중 {{ v.inspect.missings|length | intcomma }}개 종목이 결측으로 인해 집계대상에서 제외되었습니다: <a href="#" class="text-decoration-none">결측으로 제외된 종목 확인하기</a>.</li>
-          {% if v.desc.outliers != None %}
-          <li>결측치를 제외한 {{ v.inspect.n_obs|intcomma }}개 종목 중 극단치로 판단되는 {{ v.desc.outliers|length | intcomma }}개 종목 (상하위 각 2.5%)이 집계 대상에서 제외되었습니다: <a href="#" class="text-decoration-none">극단치로 제외된 종목 확인하기</a>.</li>
-          {% endif %}
-          <li>이에 따라 총 {{ v.desc.desc.종목수|floatformat:"0" | intcomma }}개 종목에 대한 집계결과를 확인할 수 있습니다.</li>
+          <li>총 {{ v.desc.n_corp|intcomma }}개 상장종목 중
+            <ul>
+              <li>{{ v.desc.n_miss|intcomma }}개 종목이 결측으로 인해 집계대상에서 제외되었습니다: <a href="#" class="text-decoration-none">결측으로 제외된 종목 확인하기</a>.</li>
+              {% if v.desc.n_outlier %}
+              <li>극단치로 판단되는 {{ v.desc.n_outlier|intcomma }}개 종목 (상하위 각 2.5%)이 집계 대상에서 제외되었습니다: <a href="#" class="text-decoration-none">극단치로 제외된 종목 확인하기</a>.</li>
+              {% endif %}
+            </ul>
+          </li>
+          <li>이에 따라 총 {{ v.desc.stats.종목수|floatformat:"0" | intcomma }}개 종목에 대한 집계결과를 확인할 수 있습니다.</li>
           <li><a href="#" class="text-decoration-none">데이터 확인하기</a></li>
         </ul>
         <p class="fw-bold">분포 정보</p>
         <table class="table table-hover mb-5">
           <thead>
             <tr>
-              {% for h in v.desc.desc.keys %}
+              {% for h in v.desc.stats.keys %}
               <th>{{ h }}</th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
             <tr>
-              {% for r in v.desc.desc.values %}
+              {% for r in v.desc.stats.values %}
               <td>{% if forloop.first %}{{ r|floatformat:"0" | intcomma }}{% else %}{{ r | floatformat:"4"}}{% endif %}</td>
               {% endfor %}
             </tr>
@@ -47,11 +51,19 @@
         <div class="row">
           <div class="col-6">
             {% autoescape off %}
-            {{ v.hist }}
+            {{ v.desc.hist }}
             {% endautoescape %}
           </div>
           <div class="col-6">
-            <p>[(Search bar and search log) or ranking table here]</p>
+            <div class="row" id="searchValue-{{ k }}">
+              {% verbatim %}
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input class="form-control form-control-lg" type="text" type="search" placeholder="종목명 혹은 종목코드" v-model="searched" @change="getMsg">
+              </div>
+              {% endverbatim %}
+              <div id="resultMsg-{{ k }}"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -59,3 +71,92 @@
     {% endfor %}
   </div>
 </div>
+
+{% block js %}
+<script>
+  const arName = "{{ main.data.account_ratio.labelKor }}";
+  function getMethod(x) {
+    if (x === 'CFS') {
+      return '연결'
+    } else {
+      return '별도'
+    }
+  };
+  function getMarket(x) {
+    if (x === 'KOSPI') {
+      return '코스피'
+    } else {
+      return '코스닥'
+    }
+  };
+  function getStatus(x) {
+    if ( x> 97.5) {
+      return '매우 낮은 수준의 극단치로 분류되었습니다.'
+    } else if ( (x >= 80) && (x <= 97.5) ) {
+      return '낮은 수준입니다.'
+    } else if ( (x >= 60) && (x < 80) ) {
+      return '다소 낮은 수준입니다.'
+    } else if ( (x >= 40) && (x < 60) ) {
+      return '중간 수준입니다.'
+    } else if ( (x >= 20) && (x < 40) ) {
+      return '다소 높은 수준입니다.'
+    } else if ( (x >= 2.5) && (x < 20) ) {
+      return '높은 수준입니다.'
+    } else {
+      return '매우 높은 수준의 극단치로 분류되었습니다.'
+    }
+  };
+  function appendAlert(msg, status, k) {
+    var msgPlaceholder = document.getElementById('resultMsg-' + k)
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML =
+      '<div class="alert alert-' + status + ' alert-dismissable mb-0" role="alert"</div>'
+        + msg
+        + '<button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+    msgPlaceholder.append(wrapper)
+  };
+
+</script>
+{% for k, v in main.data.results.items %}
+<script>
+  Vue.createApp({
+    data() {
+      return {
+        nCorp: "{{ v.desc.stats.종목수|floatformat:"0" | intcomma }}",
+        method: getMethod("{{ k|slice:":3"}}"),
+        market: getMarket("{{ k|slice:"4:"}}"),
+        valueAll: JSON.parse("{{ v.search_data | escapejs }}"),
+        searched: null,
+        matched: null,
+      }
+    },
+    methods: {
+      getMsg() {
+        this.matched = this.valueAll.find( x =>
+          x.stock_code === this.searched
+        );
+        if (this.matched == null ) {
+          this.matched = this.valueAll.find( x =>
+            x.corp_name === this.searched
+          )
+        };
+        if (this.matched == null) {
+          msg = `${this.market} 시장 내 해당 종목 (${this.searched})이 존재하지 않습니다.`;
+          status = 'danger';
+        } else if (this.matched.is_missing === true) {
+          msg = `${this.matched.corp_name} (${this.matched.stock_code})의 ${this.method} 재무제표상 ${arName}값이 결측되었습니다.`;
+          status = 'danger';
+        } else if (this.matched.is_outlier === true) {
+          msg = `${this.matched.corp_name} (${this.matched.stock_code})의 ${this.method} 재무제표상 ${arName}값이 ${arName}값은 ${this.matched.fqe} 현재 ${this.matched.value}로 집계대상 ${this.nCorp}개 종목 중 ${this.matched.rank}위, 상위 ${this.matched.rankpct}%의 ${getStatus(this.matched.rankpct)}.`;
+          status = 'warning';
+        } else {
+          msg = `${this.matched.corp_name} (${this.matched.stock_code})의 ${this.method} 재무제표상 ${arName}값은 ${this.matched.fqe} 현재 ${this.matched.value}로 집계대상 ${this.nCorp}개 종목 중 ${this.matched.rank}위, 상위 ${this.matched.rankpct}%의 ${getStatus(this.matched.rankpct)}`;
+          status = 'secondary';
+        };
+        appendAlert(msg, status, "{{ k }}")
+      },
+    }
+  }).mount("#searchValue-{{ k }}");
+</script>
+{% endfor %}
+{% endblock %}

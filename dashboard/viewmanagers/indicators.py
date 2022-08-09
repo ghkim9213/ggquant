@@ -13,39 +13,55 @@ class RecentAccountRatio:
         self.method = method
         self.market = market
         self.indexes = ['stock_code','corp_name', 'fqe']
-        self.corp_all = Corp.objects.filter(delistedAt__isnull=True, market=self.market)
 
-    @property
-    def series(self):
+        corp_all = Corp.objects.filter(delistedAt__isnull=True, market=self.market)
         rows = AccountRatioCrossSectionManager().table_rows(self.method, self.market)
-        tgcols = self.indexes+[self.name]
-        new_rows = []
-        for row in rows:
-            new_rows.append({c:row[c] for c in tgcols})
-        return pd.DataFrame.from_records(new_rows).dropna().set_index(self.indexes)[self.name]
+        if self.name in rows[0].keys():
+            tgcols = self.indexes+[self.name]
+            new_rows = []
+            for row in rows:
+                new_rows.append({c:row[c] for c in tgcols})
 
-    @property
-    def inspect(self):
-        sc_all = self.series.index.get_level_values('stock_code')
-        missings = [corp for corp in self.corp_all if corp.stockCode not in sc_all]
-        return {
-            'n_corp_all': self.corp_all.count(),
-            'n_obs': len(self.series),
-            'missings': missings,
-        }
+            df_corp_all = (
+                pd.DataFrame.from_records(
+                    [{
+                        'stock_code':corp.stockCode,
+                        'corp_name':corp.corpName
+                    } for corp in corp_all]
+                )#.set_index(self.indexes[:-1])
+            )
+            df_value = pd.DataFrame.from_records(new_rows).dropna()
+            self.df = (
+                df_corp_all.merge(
+                    df_value,
+                    on=['stock_code','corp_name'],
+                    how='left')
+            ).rename(columns={self.name:'value'})
+        else:
+            raise ValueError(f"{self.method} {self.market} has no attribute of {self.name}.")
+
+    def inspect(self, **kwargs):
+        self.df['is_missing'] = self.df.value.isnull()
+        self.df['rank'] = self.df.value.rank(ascending=False, method='min')
+        self.df['rankpct'] = self.df.value.rank(ascending=False, pct=True, method='min').round(4) * 100
+        outliers = None
+        bounds = kwargs.pop('bounds',None)
+        if bounds != None:
+            s = self.df.dropna().set_index(self.indexes).value
+            lb, ub = s.quantile(bounds).tolist()
+            winsor = (s >= lb) & (s <= ub)
+            self.df = pd.concat(
+                [
+                    self.df.set_index(self.indexes),
+                    (~winsor).rename('is_outlier')
+                ], axis=1
+            ).reset_index()
 
     def describe(self, **kwargs):
-        bounds = kwargs.pop('bounds',None)
-        if bounds == None:
-            desc = self.series.describe()
-            outliers = None
-        else:
-            lb, ub = self.series.quantile(bounds).tolist()
-            winsor = (self.series >= lb) & (self.series <= ub)
-            desc = self.series[winsor].dropna().describe()
-            sc_outliers = self.series[~winsor].dropna().index.get_level_values('stock_code')
-            outliers = [corp for corp in self.corp_all if corp.stockCode in sc_outliers]
-
+        winsorize = kwargs.pop('winsorize', None)
+        df = self.df.loc[self.df.is_missing==False]
+        df = df.loc[df.is_outlier==False] if winsorize == True else self.df
+        s = df.set_index(self.indexes).value.dropna()
         lk = {
             'count': '종목수',
             'mean': '평균',
@@ -56,22 +72,12 @@ class RecentAccountRatio:
             '75%': '3분위',
             'max': '최대'
         }
-
-        return {
-            'desc': desc.rename(index=lk).to_dict(),
-            'outliers': outliers
-        }
+        return s.describe().rename(index=lk).to_dict()
 
     def histogram(self, **kwargs):
-        bounds = kwargs.pop('bounds',None)
-        if bounds == None:
-            s = self.series
-        else:
-            print(self.series)
-            lb, ub = self.series.quantile(bounds).tolist()
-            winsor = (self.series >= lb) & (self.series <= ub)
-            s = self.series[winsor].dropna()
-
+        winsorize = kwargs.pop('winsorize', None)
+        df = self.df.loc[(self.df.is_missing==False)&(self.df.is_outlier==False)] if winsorize == True else self.df
+        s = df.set_index(self.indexes).value.dropna()
         method_lk = '연결' if self.method == 'CFS' else '별도'
         fig = go.Figure()
         fig.add_trace(go.Histogram(
@@ -80,15 +86,8 @@ class RecentAccountRatio:
             name = self.label_kor
         ))
         fig.update_layout(
-            # autosize = False,
-            # width = 500,
-            # height = 400,
             paper_bgcolor='rgba(0,0,0,0)',
-            # plot_bgcolor='rgba(0,0,0,0)',
             margin = dict(l=30,r=30,b=30,t=30),
-            # barmode='overlay',
-            # x=f"{self.label_kor}",
-            # y="확률밀도",
             title_text=f"{self.market} {self.label_kor} 분포 ({method_lk})"
         )
         fig.update_traces(opacity=.75)
@@ -138,22 +137,32 @@ class IndicatorsViewManager:
                         }
                     }
                 else:
-                    view_ar_data = {}
+                    view_ar_data = {
+                        'account_ratio': AccountRatio.objects.get(name=request.POST['itemSelected']),
+                        'results': {}
+                    }
                     for oc, mkt in oc_mkt_ord:
-                        recent_ar = RecentAccountRatio(
-                            request.POST['itemSelected'],
-                            oc,
-                            mkt
-                        )
-                        view_ar_data[f"{oc}_{mkt}"] = {
-                            'series': recent_ar.series,
-                            'inspect': recent_ar.inspect,
-                            'desc': recent_ar.describe(bounds=[.025, .975]),
-                            'hist': recent_ar.histogram(bounds=[.025, .975]),
+                        try:
+                            recent_ar = RecentAccountRatio(
+                                request.POST['itemSelected'],
+                                oc,
+                                mkt
+                            )
+                        except ValueError:
+                            continue
+                        recent_ar.inspect(bounds=[.025,.975])
+                        view_ar_data['results'][f"{oc}_{mkt}"] = {
+                            'desc': {
+                                'n_corp': len(recent_ar.df),
+                                'n_miss': recent_ar.df.is_missing.sum(),
+                                'n_outlier': recent_ar.df.is_outlier.sum(),
+                                'stats': recent_ar.describe(winsorize=True),
+                                'hist': recent_ar.histogram(winsorize=True),
+                            },
+                            'search_data': recent_ar.df.to_json(orient='records'),
                         }
                     return {
                         'status': 'view_ar',
-                        'account_ratio': AccountRatio.objects.get(name=request.POST['itemSelected']),
                         'data': view_ar_data,
                     }
         else:

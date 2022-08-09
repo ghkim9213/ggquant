@@ -345,10 +345,14 @@ class AccountRatio(models.Model):
     def syntax_katex(self):
         syntax_katex = self.syntax
         labelKor_all = [FsAccount.objects.filter(accountNm=arg).last().labelKor for arg in self.arg_all]
-        for k, v in dict(zip(self.arg_all,labelKor_all)).items():
-            syntax_katex = syntax_katex.replace(k,f"\\text{{{v}}}")
-        syntax_katex = syntax_katex.replace('*','\times').replace("`","")
-        return f"\\text{{{self.labelKor}}}={syntax_katex}"
+        if self.changeIn:
+            v = labelKor_all[0]
+            return f"\\text{{{self.labelKor}}}=\\text{{당기 {v}}}/\\text{{전기 {v}}}"
+        else:
+            for k, v in dict(zip(self.arg_all,labelKor_all)).items():
+                syntax_katex = syntax_katex.replace(k,f"\\text{{{v}}}")
+            syntax_katex = syntax_katex.replace('*','\times').replace("`","")
+            return f"\\text{{{self.labelKor}}}={syntax_katex}"
 
     @property
     def operation(self):

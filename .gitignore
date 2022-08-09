@@ -4,5 +4,7 @@
 /venv/
 /static/
 
+tempwork.py
+
 *.pyc
 __pycache__/
