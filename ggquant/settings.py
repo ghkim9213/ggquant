@@ -165,6 +165,8 @@ STATIC_ROOT = '/var/www/ggquant/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CELERY
-CELERY_BROKER_URL = 'redis://localhost:6379'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+with open('.etc/ggquant_redis_endpoint.txt') as f:
+    CELERY_BROKER_URL = f.read().strip()
+    CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
 CELERY_TIMEZONE = 'Asia/Seoul'
