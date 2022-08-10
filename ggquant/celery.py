@@ -14,8 +14,4 @@ app.conf.beat_schedule = {
         'task': 'ggdb.tasks.batchs',
         'schedule': crontab(minute=0, hour=5),
         },
-    'test': {
-        'task': 'ggdb.tasks.test',
-        'schedule': 30.0,
-     },
 }
