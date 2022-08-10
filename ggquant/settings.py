@@ -25,18 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 with open('.etc/secret_key.txt') as f:
     SECRET_KEY = f.read().strip()
 
+
 # SECURITY WARNING: don't run with debug turned on in production!
-
-# for dev in local
-# DEBUG = True
-
-#
 DEBUG = False
 ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -58,7 +53,6 @@ INSTALLED_APPS = [
     # dashboard
     'dashboard',
     'dashboard.viewmanagers',
-    # 'channels',
 
     # wiki
     'wiki',
@@ -66,6 +60,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'sass_processor',
 ]
+
 
 # scss
 SASS_ROOT = 'static/'
@@ -78,6 +73,7 @@ STATICFILES_FINDERS = [
     'sass_processor.finders.CssFinder',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -88,7 +84,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
 ROOT_URLCONF = 'ggquant.urls'
+
 
 TEMPLATES = [
     {
@@ -109,28 +107,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ggquant.wsgi.application'
-# ASGI_APPLICATION = 'ggquant.asgi.application'
-CELERY_BROKER_URL = 'redis://localhost:6379'
+
+
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = my_settings.DATABASES
-# {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# CHANNEL_LAYERS = {
-#     'default':{
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             'hosts': [('127.0.0.1', 6379)]
-#         }
-#     }
-# }
 
 
 # User substitution
@@ -180,3 +163,8 @@ STATIC_ROOT = '/var/www/ggquant/static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CELERY
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_TIMEZONE = 'Asia/Seoul'
