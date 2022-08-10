@@ -166,7 +166,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CELERY
 with open('.etc/ggquant_redis_endpoint.txt') as f:
-    CELERY_BROKER_URL = f.read().strip()
+    CELERY_BROKER_URL = f"redis://{f.read().strip()}"
     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 CELERY_TIMEZONE = 'Asia/Seoul'
