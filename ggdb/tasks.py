@@ -22,10 +22,6 @@ def batchs():
     odfm = OpendartFileManager()
     odfm.update()
 
-    # test
-    # today = datetime.datetime.today().date()
-    # odfm._updated_file_all = [OpendartFile.objects.first()]
-    # #
     if len(odfm._updated_file_all) > 0:
         for odf in odfm._updated_file_all:
             fsm = FsManager(odf)
@@ -39,35 +35,3 @@ def batchs():
 
         larm = LatestAccountRatioManager()
         larm.update_temp()
-
-        # rarm = RecentAccountRatioManager()
-        # rarm.update_temp()
-
-# def update_corp():
-#     cm = CorpManager()
-#     cm.update()
-#
-# def update_fs():
-#     ftm = FsTypeManager()
-#     ftm.update()
-#
-#     fam = FsAccountManager()
-#     fam.update()
-#     t2 = time.time()
-#
-#     odfm = OpendartFileManager()
-#     odfm.update()
-#     t3 = time.time()
-#
-#     if len(odfm._updated_file_all) > 0:
-#         for odf in odfm._updated_file_all:
-#             fsm = FsManager(odf)
-#             fsm.update()
-#             fsm.update_details()
-#
-#         arm = AccountRatioManager()
-#         arm.update()
-#         arm.update_values()
-#
-#         arcsm = AccountRatioCrossSectionManager()
-#         arcsm.update()
