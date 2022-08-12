@@ -12,12 +12,10 @@
 <div class="container-fluid p-0">
   <div class="row">
     {% include './indicators_sidebar.html' %}
-    {% if main.status == 'view_ar_all' %}
-      {% include './indicators_main_view_ar_all.html' %}
-    {% elif main.status == 'inspect' %}
-      {% include './indicators_main_inspect.html'%}
-    {% elif main.status == 'view_ar' %}
-      {% include './indicators_main_view_ar.html' %}
+    {% if main.status == 'view_lar_all' %}
+      {% include './indicators_main_view_lar_all.html' %}
+    {% elif main.status == 'view_lar' %}
+      {% include './indicators_main_view_lar.html' %}
     {% endif %}
   </div>
 </div>

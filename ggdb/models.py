@@ -22,6 +22,7 @@ class Corp(models.Model):
     fye = models.IntegerField(blank=True,null=True)
     listedAt = models.DateField(blank=True,null=True)
     delistedAt = models.DateField(blank=True,null=True)
+    createdAt = models.DateField(auto_now_add=True)
 
     class Meta:
         db_table = 'corp'
@@ -360,66 +361,18 @@ class AccountRatio(models.Model):
         strfunc = f"lambda {strargs}:" + self.syntax.replace("`","")
         return eval(strfunc)
 
-    def recent_values(self, oc) -> pd.Series:
+    def inspect_latest_all(self, oc, mkt):
         arv_all = (
             self.values.select_related('corp')
-            .filter(method=oc, corp__delistedAt__isnull=True)
+            .filter(method=oc, corp__market=mkt, corp__delistedAt__isnull=True)
         )
         if arv_all.exists():
-            fields = {
-                'corp__market': 'market',
-                'corp__stockCode': 'stock_code',
-                'corp__corpName': 'corp_name',
-                'by': 'by',
-                'bq': 'bq',
-                'value': 'value',
-            }
-            df = pd.DataFrame.from_records(arv_all.values(*fields.keys())).rename(columns=fields)
-            df = df.sort_values(['market','stock_code','by','bq'], ascending=[False,True,False,False])
-            df = df.drop_duplicates(['stock_code','corp_name'])
-            df['fqe'] = df['by'].astype(str) + 'q' + df['bq'].astype(str)
-            return df.set_index(['market','stock_code','corp_name','fqe']).value.rename(self.name)
+            df = pd.DataFrame.from_records(arv_all.values())
+            df = df.sort_values(['corp_id','by','bq'], ascending=[True,False,False])
+            latest_id_all = df.drop_duplicates('corp_id').id.tolist()
+            return self.values.filter(id__in=latest_id_all)
         else:
-            return None
-
-    # def __init__(self):
-    #     self.
-    # def recent_values(self, oc) -> records:
-    #     qs = (
-    #         self.values.filter(method=oc).values('corp_id')
-    #         .annotate(max_y=Max('by')).annotate(max_q=Max('bq'))
-    #     )
-    #
-    #
-    # def panel(self) -> pd.DataFrame:
-    # def get_data(self, oc, **kwargs):
-    #     fields = {
-    #         'corp__market': 'market',
-    #         'corp__stockCode': 'stock_code',
-    #         'corp__name': 'corp_name',
-    #         'by': 'by',
-    #         'bq': 'bq',
-    #         'value': 'value',
-    #     }
-
-
-        # ranking by recent values
-        # recent = value_all.apply(pd.Series.first_valid_index,axis=1).rename('recent')
-        # recent_value = pd.Series(
-        #     [value_all[v][k] for k, v in recent.to_dict().items()]
-        #     , index=recent.index).rename('recent_value')
-        # recent_rank = recent_value.rank(method='max', ascending=False).astype(int).rename('rank')
-        # recent_rank_pct = recent_value.rank(method='max', ascending=False,pct=True).rename('pct')
-        #
-        # return pd.concat([
-        #     recent_rank,
-        #     recent_rank_pct * 100,
-        #     recent,
-        #     recent_value,
-        #     value_all
-        # ],axis=1).sort_values('rank')#.reset_index()
-
-
+            raise ValueError(f"{oc}_{mkt} has no attribute of {self.name}.")
 
 
 def get_series_label_kor(ftnm):
@@ -457,10 +410,16 @@ class AccountRatioValue(models.Model):
     bq = models.IntegerField()
     method = models.CharField(max_length=3)
     value = models.FloatField()
+    isLatest = models.BooleanField(default=False)
+    createdAt = models.DateField(auto_now_add=True)
 
     class Meta:
         db_table = 'account_ratio_value'
         get_latest_by = ['by','bq']
+        indexes = [
+            models.Index(fields=['corp','ar','by','bq','method','isLatest']),
+        ]
+
 
 
 class AccountRatioValueHistory(models.Model):

@@ -17,7 +17,7 @@
       <div class="h-100 p-5 bg-light border rounded-3">
         <h2>{{ content.title }}</h2>
         <p>{{ content.desc }}</p>
-        <a href="{{ content.url }}" class="btn btn-primary" role="button">바로 가기</a>
+        <a href="{{ content.url }}" class="btn btn-primary {% if content.disabled %}disabled{% endif %}" role="button">{% if content.disabled %}서비스 준비중{% else %}바로 가기{% endif %}</a>
       </div>
     </div>
     {% endfor %}

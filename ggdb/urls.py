@@ -15,8 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from dashboard import views
+from ggdb import views
 
 urlpatterns = [
-    path('dashboard/', views.main),
+    path('ggdb/', views.main),
 ]

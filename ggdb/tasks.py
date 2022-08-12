@@ -1,15 +1,11 @@
 from .batchtools.account_ratio import *
 from .batchtools.corp import *
 from .batchtools.fs import *
-from .batchtools.temp import *
+# from .batchtools.temp import *
 
 from celery import shared_task
 
-import time
-
-@shared_task
-def test():
-    print(f'celery working!:{time.time()}')
+import datetime
 
 
 @shared_task
@@ -26,6 +22,10 @@ def batchs():
     odfm = OpendartFileManager()
     odfm.update()
 
+    # test
+    # today = datetime.datetime.today().date()
+    # odfm._updated_file_all = [OpendartFile.objects.first()]
+    # #
     if len(odfm._updated_file_all) > 0:
         for odf in odfm._updated_file_all:
             fsm = FsManager(odf)
@@ -35,9 +35,13 @@ def batchs():
         arm = AccountRatioManager()
         arm.update()
         arm.update_values()
+        arm.update_latest_values()
 
-        arcsm = AccountRatioCrossSectionManager()
-        arcsm.update()
+        larm = LatestAccountRatioManager()
+        larm.update_temp()
+
+        # rarm = RecentAccountRatioManager()
+        # rarm.update_temp()
 
 # def update_corp():
 #     cm = CorpManager()

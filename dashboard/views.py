@@ -29,6 +29,8 @@ def stkrpt(request):
     context = {
         'search_data': svm.search(),
         'corp': svm.corp,
+        'recent_history': svm.recent_history(),
+        'ar_viewer': svm.ar_viewer(),
         'fs_viewer': svm.fs_viewer(),
     }
     return render(request,'dashboard/stkrpt.html',context)

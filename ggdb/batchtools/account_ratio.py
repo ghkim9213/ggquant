@@ -1,10 +1,12 @@
 from ggdb.models import *
 from itertools import islice
 
+import json
+
 class AccountRatioManager:
 
     def __init__(self):
-        # self.ar_all = AccountRatio.objects.all()
+        self.ar_all = AccountRatio.objects.all()
         with open('source/account_ratios.json') as f:
             self.data = json.load(f)
 
@@ -24,7 +26,6 @@ class AccountRatioManager:
 
     def update_values(self):
         print('updating account_ratio_value...')
-        ar_all = AccountRatio.objects.all()
         fields = {
             'fs__corp__id': 'corp_id',
             'fs__by': 'by',
@@ -34,8 +35,8 @@ class AccountRatioManager:
             'value': 'value',
         }
         arv_created, arv_updated, arvh_all = [], [], []
-        for ar in ar_all:
-            print(f'...collecting values for {ar.name}')
+        for ar in self.ar_all:
+            print(f'...calculating values of {ar.name}')
             arv_all = ar.values.all()
             comb2arv = {(arv.ar_id, arv.corp_id, arv.by, arv.bq, arv.method): arv for arv in arv_all}
             for oc in ['OFS', 'CFS']:
@@ -147,6 +148,50 @@ class AccountRatioManager:
 
         print("...complete!")
 
+    def update_latest_values(self):
+        print("updating 'isLatest' in account_ratio_value...")
+        oc_mkt_ord = [
+            ('CFS', 'KOSPI'),
+            ('OFS', 'KOSPI'),
+            ('CFS', 'KOSDAQ'),
+            ('OFS', 'KOSDAQ'),
+        ]
+        arv_updated = []
+        for ar in self.ar_all:
+            for oc, mkt in oc_mkt_ord:
+                print(f"...collecting the updates in the latest values of {ar.name} for {oc}_{mkt}.")
+                latest_all = ar.values.filter(method=oc, corp__market=mkt, isLatest=True)
+                try:
+                    new_latest_all = ar.inspect_latest_all(oc, mkt)
+                except ValueError:
+                    continue
+
+                # latest to old
+                be_old_all = [arv for arv in latest_all if arv not in new_latest_all]
+                for arv in be_old_all:
+                    arv.isLatest = False
+                    arv_updated.append(arv)
+
+                # new latest
+                be_latest_all = [arv for arv in new_latest_all if arv not in latest_all]
+                for arv in be_latest_all:
+                    arv.isLatest = True
+                    arv_updated.append(arv)
+
+        batch_size = 100000
+        if len(arv_updated) > 0:
+            while True:
+                print(f"...{len(arv_updated)} rows were left to be updated.")
+                batch_u = list(islice(arv_updated, batch_size))
+                if not batch_u:
+                    break
+                AccountRatioValue.objects.bulk_update(batch_u, ['isLatest'], batch_size)
+                arv_updated = arv_updated[batch_size:]
+        else:
+            print("...no change in 'isLatest' of account_ratio_value.")
+
+        print("...complete!")
+
 
 def get_dominant_series_by_oc(dfa, oc):
     if oc == 'OFS':
@@ -162,3 +207,130 @@ def get_dominant_series_by_oc(dfa, oc):
     dfa_oc = dfa_oc.sort_values(idcols+['ft_order'], ascending=[True,False,False,True]).drop_duplicates(idcols)
     del dfa_oc['ft_order']
     return dfa_oc.set_index(idcols)['value']#.rename(oc)
+
+
+
+class LatestAccountRatio:
+
+    def __init__(self, ar, **kwargs):
+        self.ar = ar
+
+        fltr = {
+            'isLatest': True,
+            'corp__delistedAt__isnull': True,
+        }
+        include_delisted = kwargs.pop('include_delisted', False)
+        if include_delisted:
+            fltr.pop('corp__delistedAt__isnull', None)
+        self.qs = ar.values.filter(**fltr).select_related('corp')
+
+    def get_series(self, oc, mkt):
+        fields = {
+            'corp__stockCode': 'stock_code',
+            'corp__corpName': 'corp_name',
+            'by': 'by',
+            'bq': 'bq',
+            'value': 'value',
+        }
+        indexes = ['stock_code','corp_name','by','bq']
+        qss = (
+            self.qs.filter(method=oc, corp__market=mkt)
+            .select_related('corp')
+        )
+        if not qss.exists():
+            raise ValueError(f"{oc}_{mkt} has no attribute of {self.ar.name}.")
+
+        return pd.DataFrame.from_records(
+            qss.values(*fields.keys())
+        ).rename(columns=fields).set_index(indexes).value
+
+
+class LatestAccountRatioManager:
+
+    def __init__(self):
+        self.tempfile_path = lambda oc, mkt: f"ggdb/temp/dashboard/latest_account_ratio_all_{oc}_{mkt}.json"
+        self.oc_mkt_ord = [
+            ('CFS', 'KOSPI'),
+            ('OFS', 'KOSPI'),
+            ('CFS', 'KOSDAQ'),
+            ('OFS', 'KOSDAQ'),
+        ]
+
+    def update_temp(self):
+        print('writing temp data for latest_account_ratio')
+        ar_all = AccountRatio.objects.all()
+        for oc, mkt in self.oc_mkt_ord:
+            print(f"...writing '{self.tempfile_path(oc, mkt)}'")
+            lar_all = []
+            for ar in ar_all:
+                try:
+                    lar_all.append(
+                        LatestAccountRatio(ar)
+                        .get_series(oc,mkt)
+                        .rename(ar.name)
+                    )
+                except ValueError:
+                    continue
+
+            df = pd.concat(lar_all, axis=1)
+            with open(self.tempfile_path(oc, mkt), 'w') as f:
+                json.dump(
+                    json.loads(
+                        df.round(4).reset_index()
+                        .sort_values(
+                            ['stock_code','by','bq'],
+                            ascending=[True,False,False]
+                        ).to_json(orient='records')
+                    ), f
+                )
+        print('...complete!')
+
+    def read_temp(self, oc, mkt, **kwargs):
+        corp = kwargs.pop('corp', None)
+        ar = kwargs.pop('ar', None)
+        with open(self.tempfile_path(oc, mkt)) as f:
+            data = json.load(f)
+
+        if (corp == None) & (ar == None):
+            return data
+
+        elif (corp == None) & (ar != None):
+            if ar.name not in data[0].keys():
+                raise KeyError(f"{oc}_{mkt} has no attribute of {ar.name}.")
+            reduced_data = []
+            for d in data:
+                reduced_d = {}
+                reduced_d['stock_code'] = d.pop('stock_code')
+                reduced_d['corp_name'] = d.pop('corp_name')
+                reduced_d['by'] = d.pop('by')
+                reduced_d['bq'] = d.pop('bq')
+                reduced_d['value'] = d.pop(ar.name)
+                reduced_data.append(reduced_d)
+            return reduced_data
+
+        elif (corp != None) & (ar == None):
+            corp_data = list(filter(
+                lambda x: x['stock_code'] == corp.stockCode,
+                data
+            ))
+            if len(corp_data) == 0:
+                raise ValueError(f"no such corp in {mkt}.")
+            return corp_data
+
+        else:
+            corp_data = list(filter(
+                lambda x: x['stock_code'] == corp.stockCode,
+                data
+            ))
+            if len(corp_data) == 0:
+                raise ValueError(f"no such corp in {mkt}.")
+            reduced_data = []
+            for d in corp_data:
+                reduced_d = {}
+                reduced_d['stock_code'] = d.pop('stock_code')
+                reduced_d['corp_name'] = d.pop('corp_name')
+                reduced_d['by'] = d.pop('by')
+                reduced_d['bq'] = d.pop('bq')
+                reduced_d['value'] = d.pop(ar.name)
+                reduced_data.append(reduced_d)
+            return reduced_data

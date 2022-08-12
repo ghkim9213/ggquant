@@ -14,7 +14,7 @@
           <form method="post">
             {% csrf_token %}
             <input type="hidden" name="clsSelected" value="accountRatio">
-            <li><button class="btn btn-link text-decoration-none text-dark" type="submit" name="itemSelected" value="crossSectionAll">재무비율 종합현황</button></li>
+            <li><button class="btn btn-link text-decoration-none text-dark" type="submit" name="itemSelected" value="latestAccountRatioAll">재무비율 종합현황</button></li>
             {% for r in v.rows %}
             {% if r.is_button %}
             <li><button class="btn btn-link text-decoration-none text-dark" type="submit" name="itemSelected" value="{{ r.name }}">{{ r.labelKor }}</button></li>
