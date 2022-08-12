@@ -3,6 +3,7 @@
 
 /venv/
 /static/
+/ggdb/temp/
 
 tempwork.py
 
