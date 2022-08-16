@@ -42,6 +42,8 @@ class AccountRatioManager:
             for oc in ['OFS', 'CFS']:
                 s_all = []
                 for acnt_nm in ar.arg_all:
+                    fa = FsAccount.objects.filter(accountNm=acnt_nm).last()
+                    is_flow = fa.type.type != 'BS'
                     fltr = {
                         'fs__corp__delistedAt__isnull': True,
                         'account__accountNm': acnt_nm
@@ -65,6 +67,13 @@ class AccountRatioManager:
                         dfa = dfa.loc[drop_cis]
 
                     s = get_dominant_series_by_oc(dfa, oc)
+
+                    # adjust flow values of 4th quarter
+                    if is_flow:
+                        dfq = s.sort_index().unstack('bq')
+                        dfq[4] = dfq[4] - (dfq[1] + dfq[2] + dfq[3])
+                        s = dfq.stack().rename('value')
+
                     s_all.append(s.rename(acnt_nm))
 
                 if ar.changeIn:

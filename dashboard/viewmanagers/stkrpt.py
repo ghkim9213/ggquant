@@ -1,8 +1,43 @@
 from dashboard.models import *
 from django.db.models import Max
-# from ggdb.batchtools.temp import *
+from ggdb.batchtools.account_ratio import *
 
 import datetime
+
+class AccountRatioTimeSeries:
+
+    def __init__(self, corp, ar, oc):
+        self.corp = corp
+        self.ar = ar
+        self.method = oc
+        self.qs = corp.account_ratios.filter(ar=ar, method=oc)
+        if not self.qs.exists():
+            raise ValueError(f"no time series for {self.ar} of {self.corp}.")
+
+        self._df = None
+        self.arv_all = ar.values.filter(method=oc, corp__market=self.corp.market)
+
+    @property
+    def series(self) -> pd.Series:
+        fields = {
+            'by': 'by',
+            'bq': 'bq',
+            'value': 'value',
+        }
+        return pd.DataFrame.from_records(self.qs.values(*fields.keys())).rename(columns=fields).set_index(['by','bq']).value
+
+    def add_series(self):
+        self._df = self.series
+
+    def add_aggregate_series(self, **kwargs):
+        bounds = kwargs.pop('bounds', None)
+        aggmethod = kwargs.pop('method', None)
+        s = self.ar.get_aggregate_time_series(self.method, self.corp.market, method=aggmethod, bounds=bounds)
+        self._df = pd.concat([self._df, s.rename(aggmethod)], axis=1)
+
+    def get_df(self):
+        return self._df.replace([np.nan, np.inf, -np.inf], None).sort_index()
+
 
 class StkrptViewManager:
 
@@ -12,6 +47,7 @@ class StkrptViewManager:
         if stock_code == None:
             stock_code = '005930'
         self.corp = Corp.objects.get(stockCode=stock_code)
+        self.ar_all = AccountRatio.objects.all()
 
     def search(self):
         corp_all = Corp.objects.all()
@@ -56,16 +92,72 @@ class StkrptViewManager:
             '재무비율': recent_arvh_values,
         }
 
-    def ar_viewer(self):
-        rows = AccountRatioCrossSectionManager().table_rows()
+    def lar_viewer(self):
+        larm = LatestAccountRatioManager()
+        lar_viewer_data = {'CFS': {}, 'OFS': {}}
+        INDEXES = ['stock_code','corp_name']
+        for ar in self.ar_all:
+            for oc in lar_viewer_data.keys():
+                try:
+                    data = larm.read_temp(oc, self.corp.market, ar=ar)
+                except KeyError:
+                    continue
+                df = (
+                    pd.DataFrame.from_records(data)
+                    .sort_values(
+                        ['stock_code','by','bq'],
+                        ascending = [True, False, False]
+                    ).drop_duplicates(INDEXES).replace([np.nan, np.inf, -np.inf],None)
+                )
+                df['rank'] = df.value.rank(ascending=False, method='min').replace([np.nan, np.inf, -np.inf], None)
+                df['rankpct'] = (df.value.rank(ascending=False, pct=True, method='min') * 100).replace([np.nan, np.inf, -np.inf], None)
+                d = df.loc[df.stock_code==self.corp.stockCode].to_dict(orient='records')[0]
+                lar_viewer_data[oc][ar] = {
+                    'by': d['by'],
+                    'bq': d['bq'],
+                    'value': d['value'],
+                    'count': len(df),
+                    'rank': d['rank'],
+                    'rankpct': d['rankpct']
+                }
 
-        ar_all = AccountRatio.objects.all()
-        return {
-            oc: {
-                ar: ar.values.filter(corp=self.corp, method=oc)
-                for ar in ar_all
-            } for oc in ['CFS', 'OFS']
+        return lar_viewer_data
+
+    def ar_ts_viewer(self):
+        ar_ts_form_data = {
+            'method_choices': ['CFS', 'OFS'],
+            'ar_choices': self.ar_all,
         }
+        data = []
+        for ar in self.ar_all:
+            for oc in ['CFS', 'OFS']:
+                d = {
+                    'name': ar.name,
+                    'method': oc,
+                    'label': ar.labelKor,
+                }
+                try:
+                    ar_ts = AccountRatioTimeSeries(self.corp, ar, oc)
+                except ValueError:
+                    continue
+                ar_ts.add_series()
+                ar_ts.add_aggregate_series(method='mean', bounds=[.025,.975])
+                ar_ts.add_aggregate_series(method='median')
+                df = ar_ts.get_df()
+                d['value'] = df['value'].values.tolist()
+                d['mean'] = df['mean'].values.tolist()
+                d['median'] = df['median'].values.tolist()
+                data.append(d)
+
+        labels = [f"{idx[0]}q{idx[1]}" for idx in df.index]
+        return {
+            'form': ar_ts_form_data,
+            'chart': {
+                'labels': json.dumps(labels),
+                'data': json.dumps(data),
+            },
+        }
+
 
     def fs_viewer(self):
         fs_all = self.corp.fs.all()

@@ -374,6 +374,21 @@ class AccountRatio(models.Model):
         else:
             raise ValueError(f"{oc}_{mkt} has no attribute of {self.name}.")
 
+    def get_aggregate_time_series(self, oc, mkt, **kwargs):
+        qs = self.values.filter(method=oc, corp__market=mkt)
+        df = pd.DataFrame.from_records(qs.values())
+        bounds = kwargs.pop('bounds', None)
+        if bounds != None:
+            lb, ub = df.value.quantile(bounds).tolist()
+            winsor = (df.value >= lb) & (df.value <= ub)
+            df = df[winsor]
+        aggmethod = kwargs.pop('method', None)
+        if aggmethod == None:
+            raise ValueError('the aggregate method should be required.')
+        elif aggmethod == 'mean':
+            return df.groupby(['by','bq']).value.mean()
+        elif aggmethod == 'median':
+            return df.groupby(['by','bq']).value.median()
 
 def get_series_label_kor(ftnm):
     ft = FsType.objects.get(name=ftnm)

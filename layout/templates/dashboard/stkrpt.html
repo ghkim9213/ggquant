@@ -75,7 +75,7 @@
 
 <!-- recent history -->
 <div class="mb-4" id="recentHistory">
-  <p class="fw-bold">{{ corp.corpName }} ({{ corp.stockCode }}) 관련 오픈데이터 최근 변경사항</p>
+  <h4 class="mb-3 fw-bold">{{ corp.corpName }} ({{ corp.stockCode }}) 관련 오픈데이터 최근 변경사항</h4>
   <ul class="list-group">
     {% for k, v in recent_history.items %}
     <li class="list-group-item list-group-item-action bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#historyItems{{ forloop.counter }}" aria-expanded="false" aria-controls="historyItems{{ forloop.counter }}">{{ k }}</li>
@@ -93,23 +93,94 @@
 </div>
 
 <!-- ar viewer -->
-<div class="mb-4" id="arViewer">
-  <p class="fw-bold">재무비율 요약</p>
-  {% for oc, data in ar_viewer.items %}
-  <p>{{ oc }}</p>
-  {% for k, v in data.items %}
-  {% with latest=v.latest %}
-  <p>{{ k.labelKor }}: {{ latest.value|floatformat:"4" }}({{ latest.by }}q{{latest.bq}})</p>
-  {% endwith %}
-  {% endfor %}
-  {% endfor %}
-  <p>[abstract table: value, status, ...]</p>
-  <p>[time series by ar: value, benchmark value, ...]</p>
+<h4 class="mb-3 fw-bold">재무비율</h4>
+<div class="mb-4" id="larViewer">
+  <p class="mb-3 fw-bold">재무비율 현황</p>
+  <ul class="nav nav-tabs">
+    {% for oc in lar_viewer.keys %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if forloop.first %}active{% endif %}" id="lar{{ oc }}-tab" data-bs-toggle="tab" data-bs-target="#lar{{ oc }}" type="button" role="tab" aria-controls="lar{{ oc }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+        {% if oc == 'CFS' %}연결{% else %}별도{% endif %}
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="tab-content">
+    {% for oc, data in lar_viewer.items %}
+    <div class="tab-pane fade {% if forloop.first %}show active{% endif %} mt-4" id="lar{{ oc }}" role="tabpanel" aria-labelledby="lar{{ oc }}-tab">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>지표명</th>
+            <th>지표구분</th>
+            <th>회계연도</th>
+            <th>분기</th>
+            <th>값</th>
+            <th>상위</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for k, v in data.items %}
+          <tr>
+            <th>{{ k.labelKor }}</th>
+            <td>{{ k.div }}</td>
+            <td>{{ v.by }}</td>
+            <td>{{ v.bq }}</td>
+            <td>{% if v.value %}{{ v.value }}{% else %}-{% endif %}</td>
+            <td>{% if v.value %}{{ v.rankpct|floatformat:"2" }}% (집계대상 {{ v.count|intcomma }}개 종목 중 {{ v.rank|floatformat:"0"|intcomma }}위){% else %}-{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
 </div>
+
+<!-- account ratio time series viewer -->
+<div class="mb-4" id="artsViewer">
+  <p class="mb-3 fw-bold">재무비율 변동</p>
+  <!-- select chart -->
+  <div id="selectArts">
+    <!-- select method     -->
+    <div class="input-group mb-3">
+      <span class="input-group-text" id="tsMethod-addon">재무제표 구분</span>
+      <div class="form-control" aria-describedby="tsMethod-addon">
+        {% for oc in ar_ts_viewer.form.method_choices %}
+        <div class="form-check form-check-inline">
+          <input type="radio" class="form-check-input" name="ocChecked" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
+          <label for="{{ oc }}" class="form-check-label" >{% if oc == 'CFS' %}연결{% else %}별도{% endif %}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <!-- select ar -->
+    <div class="input-group mb-3">
+      <span class="input-group-text" id="arSelected-addon">재무비율 선택</span>
+      <select name="arSelected" id="arSelected" class="form-select" aria-describedby="arSelected-addon">
+        {% for ar in ar_ts_viewer.form.ar_choices %}
+        <option value="{{ ar.name }}" {% if forloop.first %}selected{% endif %}>{{ ar.labelKor }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- view table -->
+  <div class="table-responsive">
+    <table class="table table-hover" id="artsTable"></table>
+  </div>
+
+  <!-- view chart -->
+  <div>
+    <canvas id="artsChart"></canvas>
+  </div>
+
+</div>
+
 
 <!-- fs viewer -->
 <div class="mb-4" id="fsViewer">
-  <p class="fw-bold">재무제표 검색</p>
+  <h4 class="mb-3 fw-bold">재무제표 검색</h4>
   <div class="formbox">
     {% if fs_viewer.fs_list == None %}
     <p class="text-center text-muted fs-2">조회 가능한 재무제표가 존재하지 않습니다.</p>
@@ -198,6 +269,8 @@
 {% endblock %}
 
 {% block js %}
+
+<!-- js script for searching stock -->
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" integrity="sha256-eTyxS0rkjpLEo16uXTS0uVCS4815lc40K2iVpWDvdSY=" crossorigin="anonymous"></script>
 <script>
   const searchData = JSON.parse("{{ search_data | escapejs }}");
@@ -220,6 +293,123 @@
     // console.log(selectedCorp.value)
   }
 </script>
+
+<!-- js script for chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // default chart and table
+  const corpName = "{{ corp.corpName }}"
+  const market = "{{ corp.market }}"
+  const labels = JSON.parse("{{ ar_ts_viewer.chart.labels | escapejs }}");
+  const dataAll = JSON.parse("{{ ar_ts_viewer.chart.data | escapejs }}");
+  const defaultRow = dataAll[0]
+
+
+  // table
+  $(document).ready(function() {
+    // header
+    const artsTable = document.getElementById('artsTable')
+    var head = document.createElement('thead');
+    var hrow = document.createElement('tr');
+    for (h of labels) {
+      var hcell = document.createElement('th');
+      var hval = document.createTextNode(h);
+      hcell.appendChild(hval);
+      hrow.appendChild(hcell);
+    }
+    head.appendChild(hrow);
+
+    // body
+    var body = document.createElement('tbody');
+    var brow = document.createElement('tr');
+    for (v of defaultRow.value) {
+      var bcell = document.createElement('td');
+      if ( v === null ) {
+        var bval = document.createTextNode('-');
+      } else {
+        var bval = document.createTextNode(Number(v).toFixed(4));
+      }
+      bcell.appendChild(bval);
+      brow.appendChild(bcell);
+    }
+    body.appendChild(brow);
+    artsTable.appendChild(head);
+    artsTable.appendChild(body);
+  })
+
+
+  // chart
+  const data = {
+    labels: labels,
+    datasets: [{
+        label: `${corpName} ${defaultRow.label}`,
+        backgroundColor: 'rgb(255, 99, 132)',
+        borderColor: 'rgb(255, 99, 132)',
+        data: defaultRow.value,
+      }, {
+        label: `${market} ${defaultRow.label} 평균`,
+        data: defaultRow.mean,
+        backgroundColor: "#084de0",
+        borderColor: "#084de0",
+        borderDash: [5, 5]
+      }, {
+        label: `${market} ${defaultRow.label} 중위`,
+        data: defaultRow.median,
+        backgroundColor: "#50C878",
+        borderColor: "#50C878",
+        borderDash: [5, 5]
+      }
+    ]
+  };
+
+  const config = {
+    type: 'line',
+    data: data,
+    options: {}
+  };
+
+  const artsChart = new Chart(
+    document.getElementById('artsChart'),
+    config
+  );
+
+  // update
+  $(document).ready(function() {
+    $('#selectArts').change(function() {
+      var ocChecked = $('input[name=ocChecked]:checked').val()
+      var arSelected = $('#arSelected').val()
+      var matched = dataAll.find( x =>
+        (x.method === ocChecked)
+        && (x.name === arSelected)
+      )
+      if (matched != null) {
+        var brow = $('#artsTable tbody tr')[0]
+        for (let [i, v] of matched.value.entries()) {
+          if (v === null) {
+            brow.cells[i].innerHTML = '-'
+          } else {
+            brow.cells[i].innerHTML = Number(v).toFixed(4)
+          }
+          // console.log(v.toLocaleString(undefined, floatformat))
+        }
+        artsChart.data.datasets[0].label = matched.label;
+        artsChart.data.datasets[0].data = matched.value;
+
+        artsChart.data.datasets[1].label = `${market} ${matched.label} 평균`;
+        artsChart.data.datasets[1].data = matched.mean;
+
+        artsChart.data.datasets[2].label = `${market} ${matched.label} 중위`;
+        artsChart.data.datasets[2].data = matched.median;
+
+        artsChart.update();
+      } else {
+        alert('no such series')
+      }
+    })
+  });
+</script>
+
+<!-- js script for searching fs -->
 <script>
   const fsAll = JSON.parse("{{ fs_viewer.fs_list | escapejs }}")
   Vue.createApp({
