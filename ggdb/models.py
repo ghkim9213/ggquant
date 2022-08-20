@@ -268,6 +268,90 @@ class FsAccount(models.Model):
         ]
 
 
+class FsAccountSeries:
+
+    def __init__(self, acnt_nm):
+        self.acnt_nm = acnt_nm
+
+    def get_clean_fd_series(self, oc, mkt):
+        # query
+        fa = FsAccount.objects.filter(accountNm=self.acnt_nm).last()
+        fltr = {
+            'account__accountNm': self.acnt_nm,
+            'fs__type__oc': oc,
+            'fs__corp__market': mkt,
+        }
+        qs = (
+            FsDetail.objects
+            .filter(**fltr)
+            .select_related('fs', 'fs__corp')
+        )
+        if not qs.exists():
+            raise ValueError(f"no fsdetails for {self.acnt_nm} in {oc}_{mkt}.")
+
+        ft_div = qs.first().fs.type.type
+        FIELDS = {
+            'fs__corp__id': 'corp_id',
+            'fs__corp__fye': 'fye',
+            'fs__fqe': 'fqe',
+            'fs__type__name': 'fstype',
+            'value': 'value',
+        }
+        dfa = (
+            pd.DataFrame
+            .from_records(qs.values(*FIELDS))
+            .rename(columns=FIELDS)
+        )
+        dfa.fqe = pd.to_datetime(dfa.fqe)
+
+        # cleaning
+        # drop duplicates in IS family
+        ft_prefix_uniq = dfa.fstype.str[:-1].unique()
+        if ('IS' in ft_prefix_uniq) and ('CIS' in ft_prefix_uniq):
+            drop_cis = dfa.fstype.str[:-1] != 'CIS'
+            dfa = dfa.loc[drop_cis]
+
+        # drop duplicated values from dominated fstype
+        ft_count = dfa.fstype.value_counts().to_dict()
+        dfa['ft_order'] = dfa.fstype.replace(ft_count)
+        dfa = dfa.sort_values(
+            ['corp_id','fqe','ft_order'],
+            ascending = [True, False, False]
+        ).drop_duplicates([
+            'corp_id', 'fqe'
+        ])
+        del dfa['ft_order'], dfa['fstype']
+
+        # adjust by and bq based on fqe
+        dfa = dfa.sort_values(['corp_id', 'fqe'])
+        mgap = dfa.fqe.dt.month - dfa.fye
+        ydiff = -((mgap < 0) & (dfa.fye != 12)).astype(int)
+        dfa['by'] = dfa.fqe.dt.year + ydiff
+        dfa['bq'] = mgap.replace({-9:3, -6:6, -3:9, 0:12}) // 3
+
+        # # caculate 4th quarter's value
+        is_not_flow = fa.type.type == 'BS'
+        if is_not_flow:
+            return dfa.set_index(['corp_id','fqe'])['value']
+        else:
+            # caculate
+            idx2fqe = (
+                dfa[['corp_id','by','bq','fqe']]
+                .set_index(['corp_id','by','bq'])
+                .fqe.to_dict()
+            )
+            dfq = (
+                dfa[['corp_id','by','bq','value']]
+                .set_index(['corp_id','by','bq'])
+                .value.unstack('bq')
+            )
+            dfq[4] = dfq[4] - (dfq[1] + dfq[2] + dfq[3])
+            # return dfq
+            dfq = dfq.stack().rename('value').to_frame()
+            dfq['fqe'] = [idx2fqe[idx] for idx in dfq.index]
+            return dfq.reset_index().set_index(['corp_id','fqe'])['value']
+
+
 class FsDetail(models.Model):
     fs = models.ForeignKey(
         Fs,
@@ -374,8 +458,42 @@ class AccountRatio(models.Model):
         else:
             raise ValueError(f"{oc}_{mkt} has no attribute of {self.name}.")
 
+    def get_panel(self, oc, mkt):
+        if len(self.arg_all) > 1:
+            s_all = []
+            for acnt_nm in self.arg_all:
+                fas = FsAccountSeries(acnt_nm)
+                s = fas.get_clean_fd_series(oc, mkt)
+                s_all.append(s.rename(acnt_nm))
+            df = pd.concat(s_all,axis=1)
+            panel = (
+                self.operation(*[df[c] for c in self.arg_all])
+                .rename('value').replace([-np.inf,np.inf],np.nan).dropna()
+            )
+        else:
+            fas = FsAccountSeries(self.arg_all[0])
+            panel = fas.get_clean_fd_series(oc, mkt)
+
+        if self.changeIn:
+            panel = panel.reset_index().sort_values(['corp_id','fqe'])
+            panel['prev_fqe'] = panel.groupby('corp_id').fqe.shift(1)
+            panel['prev_value'] = panel.groupby('corp_id').value.shift(1)
+            panel = panel.dropna()
+            big_gap = (panel.fqe - panel.prev_fqe) > '92 days'
+            panel = panel.loc[~big_gap]
+            panel['ar'] = panel.value / panel.prev_value
+            panel = (
+                panel.set_index(['corp_id','fqe']).ar
+                .replace([-np.inf,np.inf],np.nan)
+                .dropna().rename('value')
+            )
+        return panel
+
+
     def get_aggregate_time_series(self, oc, mkt, **kwargs):
         qs = self.values.filter(method=oc, corp__market=mkt)
+        if not qs.exists():
+            raise ValueError(f"no {self.name} values for {oc} {mkt}.")
         df = pd.DataFrame.from_records(qs.values())
         bounds = kwargs.pop('bounds', None)
         if bounds != None:
@@ -410,6 +528,14 @@ def get_series_label_kor(ftnm):
     return f"{tnm} ({oc}, {ft.method})"
 
 
+OC_MKT_ORD = [
+    ('CFS', 'KOSPI'),
+    ('OFS', 'KOSPI'),
+    ('CFS', 'KOSDAQ'),
+    ('OFS', 'KOSDAQ'),
+]
+
+
 class AccountRatioValue(models.Model):
     ar = models.ForeignKey(
         AccountRatio,
@@ -421,18 +547,17 @@ class AccountRatioValue(models.Model):
         related_name = 'account_ratios',
         on_delete = models.CASCADE,
     )
-    by = models.IntegerField()
-    bq = models.IntegerField()
-    method = models.CharField(max_length=3)
+    fqe = models.DateField(blank=True, null=True)
+    oc = models.CharField(max_length=3)
     value = models.FloatField()
     isLatest = models.BooleanField(default=False)
     createdAt = models.DateField(auto_now_add=True)
 
     class Meta:
         db_table = 'account_ratio_value'
-        get_latest_by = ['by','bq']
+        get_latest_by = 'fqe'
         indexes = [
-            models.Index(fields=['corp','ar','by','bq','method','isLatest']),
+            models.Index(fields=['corp','ar','fqe','oc','isLatest']),
         ]
 
 

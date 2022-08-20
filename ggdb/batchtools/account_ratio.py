@@ -26,85 +26,24 @@ class AccountRatioManager:
 
     def update_values(self):
         print('updating account_ratio_value...')
-        fields = {
-            'fs__corp__id': 'corp_id',
-            'fs__by': 'by',
-            'fs__bq': 'bq',
-            'fs__type__name': 'fstype',
-            'fs__fqe': 'fqe',
-            'value': 'value',
-        }
         arv_created, arv_updated, arvh_all = [], [], []
         for ar in self.ar_all:
             print(f'...calculating values of {ar.name}')
-            arv_all = ar.values.all()
-            comb2arv = {(arv.ar_id, arv.corp_id, arv.by, arv.bq, arv.method): arv for arv in arv_all}
-            for oc in ['OFS', 'CFS']:
-                s_all = []
-                for acnt_nm in ar.arg_all:
-                    fa = FsAccount.objects.filter(accountNm=acnt_nm).last()
-                    is_flow = fa.type.type != 'BS'
-                    fltr = {
-                        'fs__corp__delistedAt__isnull': True,
-                        'account__accountNm': acnt_nm
-                    }
-                    qs = (
-                        FsDetail.objects
-                        .select_related('fs','fs__corp','fs__type','account')
-                        .filter(**fltr)
-                    )
-                    ft_div = qs.first().fs.type.type
-                    dfa = pd.DataFrame.from_records(qs.values(*fields)).rename(columns=fields)
+            arv_all = ar.values.all().select_related('ar','corp')
+            comb2arv = {(arv.ar.id, arv.corp.id, arv.fqe, arv.oc): arv for arv in arv_all}
+            for oc, mkt in OC_MKT_ORD:
+                try:
+                    panel = ar.get_panel(oc, mkt)
+                except ValueError:
+                    continue
 
-                    # drop old version of fs
-                    idcols = [c for c in dfa.columns if c not in  ['fqe','value']]
-                    dfa = dfa.sort_values(idcols+['fqe'], ascending=[True,False,False,True,False]).drop_duplicates(idcols)
-                    del dfa['fqe']
-
-                    ft_prefix_uniq = dfa.fstype.str[:-1].unique()
-                    if ('IS' in ft_prefix_uniq) and ('CIS' in ft_prefix_uniq):
-                        drop_cis = dfa.fstype.str[:-1] != 'CIS'
-                        dfa = dfa.loc[drop_cis]
-
-                    s = get_dominant_series_by_oc(dfa, oc)
-
-                    # adjust flow values of 4th quarter
-                    if is_flow:
-                        dfq = s.sort_index().unstack('bq')
-                        dfq[4] = dfq[4] - (dfq[1] + dfq[2] + dfq[3])
-                        s = dfq.stack().rename('value')
-
-                    s_all.append(s.rename(acnt_nm))
-
-                if ar.changeIn:
-                    df = s.reset_index().sort_values(['corp_id','by','bq'])
-                    df['prev_value'] = df.value.groupby(df.corp_id).shift(1)
-                    ym = df.by.astype(str) + (df.bq*3).astype(str).str.zfill(2)
-                    df['ym'] = pd.to_datetime(ym,format='%Y%m')
-                    df['prev_ym'] = df.ym.groupby(df.corp_id).shift(1)
-                    df = df.dropna()
-                    big_gap = (df.ym - df.prev_ym) > '92 days'
-                    df = df.loc[~big_gap]
-                    df['ar'] = df.value / df.prev_value
-                    ss = df.set_index(['corp_id','by','bq']).ar
-                    new_arv_all = (
-                        ss.rename('value').replace([-np.inf,np.inf],np.nan).dropna()
-                        .reset_index().to_dict(orient='records')
-                    )
-                else:
-                    df = pd.concat(s_all,axis=1)
-                    new_arv_all = (
-                        ar.operation(*[df[c] for c in ar.arg_all])
-                        .rename('value').replace([-np.inf,np.inf],np.nan).dropna()
-                        .reset_index().to_dict(orient='records')
-                    )
+                new_arv_all = panel.reset_index().to_dict(orient='records')
                 for new_arv in new_arv_all:
                     arv = comb2arv.pop(
                         (
                             ar.id,
                             new_arv['corp_id'],
-                            new_arv['by'],
-                            new_arv['bq'],
+                            new_arv['fqe'],
                             oc,
                         ), None
                     )
@@ -112,7 +51,7 @@ class AccountRatioManager:
                         arv_created.append(AccountRatioValue(**{
                             'ar_id': ar.id,
                             **new_arv,
-                            'method': oc,
+                            'oc': oc,
                         }))
                     else:
                         if arv.value != new_arv['value']:
@@ -305,7 +244,7 @@ class LatestAccountRatioManager:
 
         elif (corp == None) & (ar != None):
             if ar.name not in data[0].keys():
-                raise KeyError(f"{oc}_{mkt} has no attribute of {ar.name}.")
+                raise KeyError(ar.name)
             reduced_data = []
             for d in data:
                 reduced_d = {}
@@ -341,5 +280,89 @@ class LatestAccountRatioManager:
                 reduced_d['by'] = d.pop('by')
                 reduced_d['bq'] = d.pop('bq')
                 reduced_d['value'] = d.pop(ar.name)
+                reduced_data.append(reduced_d)
+            return reduced_data
+
+
+class AggregateAccountRatioManager:
+
+    def __init__(self):
+        self.tempfile_path = lambda oc, mkt: f"ggdb/temp/dashboard/aggregate_account_ratio_all_{oc}_{mkt}.json"
+        self.oc_mkt_ord = [
+            ('CFS', 'KOSPI'),
+            ('OFS', 'KOSPI'),
+            ('CFS', 'KOSDAQ'),
+            ('OFS', 'KOSDAQ'),
+        ]
+
+    def update_temp(self):
+        print('writing temp data for aggregate_account_ratio')
+        ar_all = AccountRatio.objects.all()
+        for oc, mkt in self.oc_mkt_ord:
+            print(f"...writing '{self.tempfile_path(oc, mkt)}'")
+            agg_ar_all = []
+            for ar in ar_all:
+                try:
+                    ar_mean = ar.get_aggregate_time_series(oc, mkt, method='mean', bounds=[.025,.975]).rename(f"mean_{ar.name}")
+                except ValueError:
+                    continue
+                ar_median = ar.get_aggregate_time_series(oc, mkt, method='median').rename(f"median_{ar.name}")
+                agg_ar_all += [ar_mean, ar_median]
+
+
+            df = pd.concat(agg_ar_all, axis=1)
+            with open(self.tempfile_path(oc, mkt), 'w') as f:
+                json.dump(
+                    json.loads(
+                        df.round(4).reset_index()
+                        .sort_values(['by','bq'])
+                        .to_json(orient='records')
+                    ), f
+                )
+        print('...complete!')
+
+    def read_temp(self, oc, mkt, **kwargs):
+        ar = kwargs.pop('ar', None)
+        aggmethod = kwargs.pop('method', None)
+        with open(self.tempfile_path(oc, mkt)) as f:
+            data = json.load(f)
+
+        if (ar == None) & (aggmethod == None):
+            return data
+
+        else:
+            if (ar == None) & (aggmethod != None):
+                tgkey_all = [
+                    k for k in data[0].keys()
+                    if (k not in ['by', 'bq'])
+                    and (k.split('_')[0] == aggmethod)
+                ]
+
+            elif (ar != None) & (aggmethod == None):
+                tgkey_all = [
+                    k for k in data[0].keys()
+                    if (k not in ['by', 'bq'])
+                    and (k.split('_')[1] == ar.name)
+                ]
+                if len(tgkey_all) == 0:
+                    raise KeyError(ar.name)
+
+            else:
+                tgkey_all = [
+                    k for k in data[0].keys()
+                    if (k not in ['by', 'bq'])
+                    and (k.split('_')[0] == aggmethod)
+                    and (k.split('_')[1] == ar.name)
+                ]
+                if len(tgkey_all) == 0:
+                    raise KeyError(ar.name)
+
+            reduced_data = []
+            for d in data:
+                reduced_d = {}
+                reduced_d['by'] = d.pop('by')
+                reduced_d['bq'] = d.pop('bq')
+                for k in tgkey_all:
+                    reduced_d[k] = d.pop(k)
                 reduced_data.append(reduced_d)
             return reduced_data

@@ -33,5 +33,8 @@ def batchs():
         arm.update_values()
         arm.update_latest_values()
 
-        larm = LatestAccountRatioManager()
-        larm.update_temp()
+        # larm = LatestAccountRatioManager()
+        # larm.update_temp()
+        #
+        # aarm = AggregateAccountRatioManager()
+        # aarm.update_temp()
