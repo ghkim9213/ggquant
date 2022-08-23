@@ -28,23 +28,27 @@ class AccountRatioManager:
         print('updating account_ratio_value...')
         arv_created, arv_updated, arvh_all = [], [], []
         for ar in self.ar_all:
-            print(f'...calculating values of {ar.name}')
+            print(f'...collecting current values of {ar.name}')
             arv_all = ar.values.all().select_related('ar','corp')
             comb2arv = {(arv.ar.id, arv.corp.id, arv.fqe, arv.oc): arv for arv in arv_all}
             for oc, mkt in OC_MKT_ORD:
                 try:
+                    print(f'...calculating new values of {ar.name} for {oc}_{mkt}')
                     panel = ar.get_panel(oc, mkt)
                 except ValueError:
+                    print(f'...no panel of {ar.name} for {oc}_{mkt}')
                     continue
-
-                new_arv_all = panel.reset_index().to_dict(orient='records')
+                panel = panel.reset_index()
+                panel.fqe = [d.date() for d in panel.fqe]
+                new_arv_all = panel.to_dict(orient='records')
+                print(f'...comparing current and new of {ar.name} for {oc}_{mkt}')
                 for new_arv in new_arv_all:
                     arv = comb2arv.pop(
                         (
                             ar.id,
                             new_arv['corp_id'],
                             new_arv['fqe'],
-                            oc,
+                            oc
                         ), None
                     )
                     if arv == None:
