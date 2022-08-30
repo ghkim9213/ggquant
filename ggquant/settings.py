@@ -27,6 +27,7 @@ with open('.etc/secret_key.txt') as f:
 DEBUG = False
 ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
 # Application definition
 INSTALLED_APPS = [
