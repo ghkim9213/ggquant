@@ -1,7 +1,6 @@
 from django.urls import path
-from .consumers import TicksConsumer , MinutesConsumer
+from .consumers import StkrptArConsumer
 
-ws_urlpatterns = [
-    path('ws/ticks/', TicksConsumer.as_asgi() ),
-    path('ws/minutes/', MinutesConsumer.as_asgi()),
+websocket_urlpatterns = [
+    path('ws/dashboard/stkrpt/ar/<stock_code>/', StkrptArConsumer.as_asgi()),
 ]

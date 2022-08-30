@@ -21,6 +21,6 @@ urlpatterns = [
     # path('', views.home),
     path('dashboard/', views.main),
     path('dashboard/indicators', views.indicators),
-    path('dashboard/stkrpt', views.stkrpt),
+    path('dashboard/stkrpt/<stock_code>', views.stkrpt),
     # path('dashboard/backtests', views.backtests)
 ]

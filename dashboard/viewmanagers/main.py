@@ -3,7 +3,8 @@ from dashboard.models import *
 import datetime
 
 class MainViewManager:
-    categ = {
+    DEFAULT_STOCK_CODE = '005930'
+    CATEG = {
         'header': {
             'title': 'Dashboard',
             'desc': '지표별, 종목별, 포트폴리오별 분석결과를 제공합니다.',
@@ -18,7 +19,7 @@ class MainViewManager:
             'stkrpt': {
                 'title': '종목별 분석',
                 'desc': '종목별 분석 보고서를 조회합니다. 관심종목에 대해 더 깊게 알아보세요.',
-                'url': '/dashboard/stkrpt',
+                'url': f'/dashboard/stkrpt/{DEFAULT_STOCK_CODE}',
                 'disabled': False,
             },
             'pfrpt': {

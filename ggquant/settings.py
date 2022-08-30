@@ -18,10 +18,7 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
-# SECURITY WARNING: keep the secret key used in production secret!
+# Secret key
 with open('.etc/secret_key.txt') as f:
     SECRET_KEY = f.read().strip()
 
@@ -33,6 +30,10 @@ ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'loc
 
 # Application definition
 INSTALLED_APPS = [
+    #
+    'channels',
+
+    #
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -108,7 +109,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ggquant.wsgi.application'
 
+# Channels
+with open('.etc/ggquant_redis_endpoint.txt') as f:
+    REDIS_URL = f"redis://{f.read().strip()}"
 
+ASGI_APPLICATION = 'ggquant.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'config': {
+            'hosts': [(REDIS_URL, 6379)],
+        }
+    }
+}
+
+# Celery
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TIMEZONE = 'Asia/Seoul'
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
@@ -143,30 +161,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Asia/Seoul'
-
 USE_I18N = True
-
 USE_TZ = False
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
-
+# Statics
 STATIC_URL = 'static/'
 STATIC_ROOT = '/var/www/ggquant/static/'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# CELERY
-with open('.etc/ggquant_redis_endpoint.txt') as f:
-    CELERY_BROKER_URL = f"redis://{f.read().strip()}"
-    CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-
-CELERY_TIMEZONE = 'Asia/Seoul'

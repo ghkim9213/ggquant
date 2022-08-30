@@ -2,48 +2,12 @@ from dashboard.models import *
 from django.db.models import Max
 from ggdb.batchtools.account_ratio import *
 
-import datetime
-
-class AccountRatioTimeSeries:
-
-    def __init__(self, corp, ar, oc):
-        self.corp = corp
-        self.ar = ar
-        self.method = oc
-        self.qs = corp.account_ratios.filter(ar=ar, method=oc)
-        if not self.qs.exists():
-            raise ValueError(f"no time series for {self.ar} of {self.corp}.")
-
-        self._df = None
-        self.arv_all = ar.values.filter(method=oc, corp__market=self.corp.market)
-
-    @property
-    def series(self) -> pd.Series:
-        fields = {
-            'by': 'by',
-            'bq': 'bq',
-            'value': 'value',
-        }
-        return pd.DataFrame.from_records(self.qs.values(*fields.keys())).rename(columns=fields).set_index(['by','bq']).value
-
-    def add_series(self):
-        self._df = self.series
-
-    def add_aggregate_series(self, **kwargs):
-        bounds = kwargs.pop('bounds', None)
-        aggmethod = kwargs.pop('method', None)
-        s = self.ar.get_aggregate_time_series(self.method, self.corp.market, method=aggmethod, bounds=bounds)
-        self._df = pd.concat([self._df, s.rename(aggmethod)], axis=1)
-
-    def get_df(self):
-        return self._df.replace([np.nan, np.inf, -np.inf], None).sort_index()
-
+import asyncio, datetime
 
 class StkrptViewManager:
 
-    def __init__(self, request):
+    def __init__(self, request, stock_code):
         self.request = request
-        stock_code = request.POST.get('stock_code')
         if stock_code == None:
             stock_code = '005930'
         self.corp = Corp.objects.get(stockCode=stock_code)
@@ -51,136 +15,147 @@ class StkrptViewManager:
 
     def search(self):
         corp_all = Corp.objects.all()
-        return json.dumps({c.corpName : c.stockCode for c in corp_all})
+        # return json.dumps(search_data)
+        return json.dumps([{
+            'corp_name': c.corpName,
+            'stock_code': c.stockCode,
+            'market': c.market,
+            'delisted': c.delistedAt == None,
+            'url': f"/dashboard/stkrpt/{c.stockCode}",
+        } for c in corp_all])
+        # # return json.dumps({c.corpName : c.stockCode for c in corp_all})
 
-    def recent_history(self):
-        today = datetime.datetime.today().date()
-        recent_from = today - datetime.timedelta(weeks=12)
-        fs_recent_fqe = self.corp.fs.all().aggregate(recent=Max('fqe'))['recent']
-
-        ch_all = CorpHistory.objects.filter(corp=self.corp, updatedAt__gte=recent_from)
-        ch_nm_map = {
-            'market': '상장구분',
-            'listedAt': '상장일',
-            'ceo': 'CEO',
-            'fye': '결산월',
-            'industry': '업종',
-            'homepage': '홈페이지',
-            'product': '주요 상품',
-        }
-        ch_values = (
-            [f"[{ch.updatedAt}] '{ch_nm_map[ch.changeIn]}' 항목이 '{ch.prevValue}'에서 '{getattr(self.corp, ch.changeIn)}'(으)로 변경되었습니다." for ch in ch_all]
-            + [f"[{self.corp.createdAt}] ggdb가 KRX KIND의 {self.corp.corpName} ({self.corp.stockCode}) 기업정보 추적을 시작합니다."]
-        )
-        if self.corp.delistedAt != None:
-            ch_values = [f"[{self.corp.delistedAt}] ggdb가 KRX KIND의 {self.corp.corpName} ({self.corp.stockCode}) 기업정보 추적을 종료합니다."] + ch_values
-
-        recent_fs_all = Fs.objects.filter(corp=self.corp, fqe=fs_recent_fqe)
-        recent_fs_values = [f"[{fs.createdAt}] ggdb가 OPEN DART의 {self.corp.corpName} ({self.corp.stockCode}) {fs.by}년도 {fs.bq}분기 ({fs.fqe}) '{fs.type.labelKor}' 추적을 시작합니다." for fs in recent_fs_all]
-
-        recent_fdh_all = FsDetailHistory.objects.filter(fd__fs__corp=self.corp, updatedAt__gte=recent_from).select_related('fd','fd__fs', 'fd__fs__type')
-        recent_fdh_values = []
-        for fdh in recent_fdh_all:
-            recent_fdh_values.append(f"[{fdh.updatedAt}] OPEN DART의 {self.corp.corpName} ({self.corp.stockCode}) {fdh.fd.fs.by}년도 {fdh.fd.fs.bq}분기 '{fdh.fd.fs.type.labelKor}' 내 '{fdh.fd.labelKor.strip()}' 계정이 {format(fdh.prevValue,',')} {fdh.fd.currency}에서 {format(fdh.fd.value,',')} {fdh.fd.currency}로 수정되었습니다.")
-
-        recent_arvh_all = AccountRatioValueHistory.objects.filter(arv__corp=self.corp, updatedAt__gte=recent_from).select_related('arv')
-        recent_arvh_values = [f"[{arvh.updatedAt}] OPEN DART 재무제표 데이터 수정에 따라 {self.corp.corpName} ({self.corp.stockCode}) {arvh.arv.by}년도 {arvh.arv.bq}분기 '{arvh.arv.ar.labelKor}'이 {round(arvh.prevValue,4)}에서 {round(arvh.arv.value,4)}로 수정되었습니다." for arvh in recent_arvh_all]
+    def ar_viewer(self):
         return {
-            '기업정보': ch_values,
-            '재무제표': recent_fs_values,
-            '재무제표 계정': recent_fdh_values,
-            '재무비율': recent_arvh_values,
-        }
-
-    def lar_viewer(self):
-        larm = LatestAccountRatioManager()
-        lar_viewer_data = {'CFS': {}, 'OFS': {}}
-        INDEXES = ['stock_code','corp_name']
-        for ar in self.ar_all:
-            for oc in lar_viewer_data.keys():
-                try:
-                    data = larm.read_temp(oc, self.corp.market, ar=ar)
-                except KeyError:
-                    continue
-                df = (
-                    pd.DataFrame.from_records(data)
-                    .sort_values(
-                        ['stock_code','by','bq'],
-                        ascending = [True, False, False]
-                    ).drop_duplicates(INDEXES).replace([np.nan, np.inf, -np.inf],None)
-                )
-                df['rank'] = df.value.rank(ascending=False, method='min').replace([np.nan, np.inf, -np.inf], None)
-                df['rankpct'] = (df.value.rank(ascending=False, pct=True, method='min') * 100).replace([np.nan, np.inf, -np.inf], None)
-                d = df.loc[df.stock_code==self.corp.stockCode].to_dict(orient='records')[0]
-                lar_viewer_data[oc][ar] = {
-                    'by': d['by'],
-                    'bq': d['bq'],
-                    'value': d['value'],
-                    'count': len(df),
-                    'rank': d['rank'],
-                    'rankpct': d['rankpct']
-                }
-
-        return lar_viewer_data
-
-    def ar_ts_viewer(self):
-        ar_ts_form_data = {
-            'method_choices': ['CFS', 'OFS'],
-            'ar_choices': self.ar_all,
-        }
-        data = []
-        for ar in self.ar_all:
-            for oc in ['CFS', 'OFS']:
-                d = {
-                    'name': ar.name,
-                    'method': oc,
-                    'label': ar.labelKor,
-                }
-                try:
-                    ar_ts = AccountRatioTimeSeries(self.corp, ar, oc)
-                except ValueError:
-                    continue
-                ar_ts.add_series()
-                ar_ts.add_aggregate_series(method='mean', bounds=[.025,.975])
-                ar_ts.add_aggregate_series(method='median')
-                df = ar_ts.get_df()
-                d['value'] = df['value'].values.tolist()
-                d['mean'] = df['mean'].values.tolist()
-                d['median'] = df['median'].values.tolist()
-                data.append(d)
-
-        labels = [f"{idx[0]}q{idx[1]}" for idx in df.index]
-        return {
-            'form': ar_ts_form_data,
-            'chart': {
-                'labels': json.dumps(labels),
-                'data': json.dumps(data),
+            'select_form': {
+                'oc_choices': ['CFS', 'OFS'],
+                'ar_choices': self.ar_all,
+                'alpha_choices': ['95', '99', '100'],
             },
         }
 
+    # def recent_history(self):
+    #     today = datetime.datetime.today().date()
+    #     recent_from = today - datetime.timedelta(weeks=12)
+    #     fs_recent_fqe = self.corp.fs.all().aggregate(recent=Max('fqe'))['recent']
+    #
+    #     ch_all = CorpHistory.objects.filter(corp=self.corp, updatedAt__gte=recent_from)
+    #     ch_nm_map = {
+    #         'market': '상장구분',
+    #         'listedAt': '상장일',
+    #         'ceo': 'CEO',
+    #         'fye': '결산월',
+    #         'industry': '업종',
+    #         'homepage': '홈페이지',
+    #         'product': '주요 상품',
+    #     }
+    #     ch_values = (
+    #         [f"[{ch.updatedAt}] '{ch_nm_map[ch.changeIn]}' 항목이 '{ch.prevValue}'에서 '{getattr(self.corp, ch.changeIn)}'(으)로 변경되었습니다." for ch in ch_all]
+    #         + [f"[{self.corp.createdAt}] ggdb가 KRX KIND의 {self.corp.corpName} ({self.corp.stockCode}) 기업정보 추적을 시작합니다."]
+    #     )
+    #     if self.corp.delistedAt != None:
+    #         ch_values = [f"[{self.corp.delistedAt}] ggdb가 KRX KIND의 {self.corp.corpName} ({self.corp.stockCode}) 기업정보 추적을 종료합니다."] + ch_values
+    #
+    #     recent_fs_all = Fs.objects.filter(corp=self.corp, fqe=fs_recent_fqe)
+    #     recent_fs_values = [f"[{fs.createdAt}] ggdb가 OPEN DART의 {self.corp.corpName} ({self.corp.stockCode}) {fs.by}년도 {fs.bq}분기 ({fs.fqe}) '{fs.type.labelKor}' 추적을 시작합니다." for fs in recent_fs_all]
+    #
+    #     recent_fdh_all = FsDetailHistory.objects.filter(fd__fs__corp=self.corp, updatedAt__gte=recent_from).select_related('fd','fd__fs', 'fd__fs__type')
+    #     recent_fdh_values = []
+    #     for fdh in recent_fdh_all:
+    #         recent_fdh_values.append(f"[{fdh.updatedAt}] OPEN DART의 {self.corp.corpName} ({self.corp.stockCode}) {fdh.fd.fs.by}년도 {fdh.fd.fs.bq}분기 '{fdh.fd.fs.type.labelKor}' 내 '{fdh.fd.labelKor.strip()}' 계정이 {format(fdh.prevValue,',')} {fdh.fd.currency}에서 {format(fdh.fd.value,',')} {fdh.fd.currency}로 수정되었습니다.")
+    #
+    #     recent_arvh_all = AccountRatioValueHistory.objects.filter(arv__corp=self.corp, updatedAt__gte=recent_from).select_related('arv')
+    #     recent_arvh_values = [f"[{arvh.updatedAt}] OPEN DART 재무제표 데이터 수정에 따라 {self.corp.corpName} ({self.corp.stockCode}) {arvh.arv.by}년도 {arvh.arv.bq}분기 '{arvh.arv.ar.labelKor}'이 {round(arvh.prevValue,4)}에서 {round(arvh.arv.value,4)}로 수정되었습니다." for arvh in recent_arvh_all]
+    #     return {
+    #         '기업정보': ch_values,
+    #         '재무제표': recent_fs_values,
+    #         '재무제표 계정': recent_fdh_values,
+    #         '재무비율': recent_arvh_values,
+    #     }
 
-    def fs_viewer(self):
-        fs_all = self.corp.fs.all()
-        fs_list = sorted([{
-            'ftnm': fs.type.name,
-            # 'label_kor': fs.type.labelKor,
-            'by': fs.by,
-            'bq': fs.bq,
-        } for fs in fs_all], key=lambda x: (-x['by'], -x['bq']))
+    # def lar_viewer(self):
+    #     larm = LatestAccountRatioManager()
+    #     lar_viewer_data = {'CFS': {}, 'OFS': {}}
+    #     INDEXES = ['stock_code','corp_name']
+    #     for ar in self.ar_all:
+    #         for oc in lar_viewer_data.keys():
+    #             try:
+    #                 data = larm.read_temp(oc, self.corp.market, ar=ar)
+    #             except KeyError:
+    #                 continue
+    #             df = (
+    #                 pd.DataFrame.from_records(data)
+    #                 .sort_values(
+    #                     ['stock_code','by','bq'],
+    #                     ascending = [True, False, False]
+    #                 ).drop_duplicates(INDEXES).replace([np.nan, np.inf, -np.inf],None)
+    #             )
+    #             df['rank'] = df.value.rank(ascending=False, method='min').replace([np.nan, np.inf, -np.inf], None)
+    #             df['rankpct'] = (df.value.rank(ascending=False, pct=True, method='min') * 100).replace([np.nan, np.inf, -np.inf], None)
+    #             d = df.loc[df.stock_code==self.corp.stockCode].to_dict(orient='records')[0]
+    #             lar_viewer_data[oc][ar] = {
+    #                 'by': d['by'],
+    #                 'bq': d['bq'],
+    #                 'value': d['value'],
+    #                 'count': len(df),
+    #                 'rank': d['rank'],
+    #                 'rankpct': d['rankpct']
+    #             }
+    #
+    #     return lar_viewer_data
 
-        if self.request.POST.get('fsFilter') == 'true':
-            fs = self.corp.fs.filter(
-                type__name = self.request.POST['ftnm_selected'],
-                by = self.request.POST['by_selected'],
-                bq = self.request.POST['bq_selected'],
-            ).latest()
-        else:
-            fs = None
-        treeview_data = get_treeview_data(fs)
-        return {
-            'fs_list': json.dumps(fs_list),
-            'treeview_data': treeview_data,
-        }
+    # async def ar_ts_viewer(self):
+    #     ar_ts_form_data = {
+    #         'method_choices': ['CFS', 'OFS'],
+    #         'ar_choices': self.ar_all,
+    #     }
+    #     await asyncio.gather(*[
+    #         get_arts_data(oc, self.corp.market, ar, self.corp.stockCode)
+    #         for oc in ['CFS', 'OFS']
+    #         for ar in self.ar_all
+    #     ])
+        # data = []
+        # for ar in self.ar_all:
+        #     for oc in ['CFS', 'OFS']:
+        #         try:
+        #             ar_ts = AccountRatioTimeSeries(self.corp, ar, oc)
+        #         except ValueError:
+        #             continue
+        #         ar_ts.add_aggregate_series(method='mean', bounds=[.025,.975])
+        #         ar_ts.add_aggregate_series(method='median')
+        #         d = ar_ts.get_chart_data()
+        #         data.append(d)
+        #
+        # return {
+        #     'form': ar_ts_form_data,
+        #     'chart': {
+        #         'default': data[0],
+        #         'data': json.dumps(data)},
+        # }
+
+
+    # def fs_viewer(self):
+    #     fs_all = self.corp.fs.all()
+    #     fs_list = sorted([{
+    #         'ftnm': fs.type.name,
+    #         # 'label_kor': fs.type.labelKor,
+    #         'by': fs.by,
+    #         'bq': fs.bq,
+    #     } for fs in fs_all], key=lambda x: (-x['by'], -x['bq']))
+    #
+    #     if self.request.POST.get('fsFilter') == 'true':
+    #         fs = self.corp.fs.filter(
+    #             type__name = self.request.POST['ftnm_selected'],
+    #             by = self.request.POST['by_selected'],
+    #             bq = self.request.POST['bq_selected'],
+    #         ).latest()
+    #     else:
+    #         fs = None
+    #     treeview_data = get_treeview_data(fs)
+    #     return {
+    #         'fs_list': json.dumps(fs_list),
+    #         'treeview_data': treeview_data,
+    #     }
 
 
 def get_parent_fd(fd, fd_prev_all):

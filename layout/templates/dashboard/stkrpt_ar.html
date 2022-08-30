@@ -1,0 +1,293 @@
+<style>
+  #arpWrapper {
+    position: relative;
+    width: 100%;
+    min-height: 800px;
+  }
+  .overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    z-index: 1;
+  }
+  .spanner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 42.5%;
+    text-align: center;
+    z-index: 2;
+  }
+
+  #arpSuccess {
+    display: none;
+  }
+
+  .table-responsive {
+    height: 700px;
+    max-height: 700px;
+  }
+
+  .fix-header {
+    position: sticky;
+    top: 0;
+    background: white;
+  }
+
+  #arpFailed {
+    display: none;
+  }
+</style>
+<div class="mb-3" id="arViewer">
+  <h4 class="mb-3 fw-bold">재무비율 분석</h4>
+  <p class="text-lead text-muted fs-5">재무비율 정의, 의미 (안정성, 수익성, 성장성, ...), 재무비율 분석의 중요성, ...  <a href="#">더보기</a></p>
+  <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 변동 및 분포</h5>
+  <p class="text-lead text-muted fs-5">{{ corp.corpName }}의 분기별 재무비율 변동 및 각 시점별 {{ corp.market }} 상장사의 재무비율 분포 정보를 조회합니다.</p>
+  <!-- select chart -->
+  <div id="selectAr">
+    <div class="d-flex flex-row">
+      <!-- select method     -->
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="tsMethod-addon">재무제표 구분</span>
+        <div class="form-control d-flex justify-content-center" aria-describedby="tsMethod-addon">
+          {% for oc in ar_viewer.select_form.oc_choices %}
+          <div class="form-check form-check-inline">
+            <input type="radio" class="form-check-input" onclick="updateAr()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
+            <label for="{{ oc }}" class="form-check-label" >{% if oc == 'CFS' %}연결{% else %}별도{% endif %}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <!-- select ar -->
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="arName-addon">재무비율 선택</span>
+        <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateAr()">
+          {% for ar in ar_viewer.select_form.ar_choices %}
+          <option class="text-center" value="{{ ar.name }}" {% if ar.name == 'ReturnOnEquity' %}selected{% endif %}>{{ ar.labelKor }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="formbox mb-3" id="arAbstract">
+    <h6>[ar name]</h6>
+    <p>[abstract] Lorem ipsum dolor sit amet, consectetur adipisicing elit. Provident voluptatum praesentium laborum quod, qui natus nobis tempore sint error, optio minima illum! Illo cupiditate a quos dolore hic, ipsa. Mollitia. <a href="#">show more</a></p>
+  </div>
+
+  <!-- ar panel plot area -->
+  <div id="arpWrapper">
+    <div class="overlay"></div>
+    <div class="spanner">
+      <div class="spinner-grow text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+      <p class="text-light fw-bold">데이터베이스 조회중</p>
+    </div>
+    <div style="min-height: 800px;">
+      <div id="arpSuccess">
+        <p class="text-lead fw-bold">절삭수준 선택</p>
+        <ul class="nav nav-pills mb-3" id="alphaNav" role="tablist">
+          {% for alpha in ar_viewer.select_form.alpha_choices %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}" id="arpp{{ alpha }}-tab" data-bs-toggle="pill" data-bs-target="#arpp{{ alpha }}" type="button" role="tab" aria-controls="arpp{{ alpha }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">{{ alpha }}%</button>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="text-lead fw-bold">조회 결과  </p>
+        <div class="row">
+          <div class="col-7" id="arpPlot">
+            <div class="tab-content" id="arpp-tabContent">
+              {% for alpha in ar_viewer.select_form.alpha_choices %}
+              <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="arpp{{ alpha }}" role="tabpanel" aria-labelledby="arpp{{ alpha }}-tab">
+                <div class="arp-plot" id="arp{{ alpha }}plot"></div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-5 table-responsive">
+            <table class="table table-hover text-nowrap" id="arpTable">
+              <thead class="fix-header">
+                <tr>
+                  <th>날짜</th>
+                  <th>값</th>
+                  <th>순위</th>
+                  <th>순위(%)</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="formbox position-relative" id="arpFailed" style="min-height: 800px;">
+        <p class="position-absolute top-50 start-50 translate-middle text-muted fs-2">조회 가능한 계열이 존재하지 않습니다.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.plot.ly/plotly-2.14.0.min.js"></script>
+<script>
+  const stockCode = "{{ corp.stockCode }}"
+  function createWs() {
+    return new Promise(function(resolve, reject) {
+      var ws = new WebSocket(
+        `ws://${window.location.host}/ws/dashboard/stkrpt/ar/${stockCode}/`
+      );
+      resolve(ws);
+    });
+  };
+  function sendInputs(ws) {
+    return new Promise(function(resolve, reject) {
+      console.log('sending inputs')
+      var wsInputs = {
+        stockCode: "{{ corp.stockCode }}",
+        oc: $("input[name=oc]:checked").val(),
+        arName: $("#arName").val(),
+      };
+      ws.onopen = function() {
+        ws.send(JSON.stringify(wsInputs))
+      };
+      resolve(ws);
+    });
+  };
+
+  function receiveData(ws) {
+    return new Promise(function(resolve, reject) {
+      ws.onmessage = function(e) {
+        var newData = JSON.parse(e.data);
+        if (newData !== null) {
+          resolve([ws, newData]);
+        } else {
+          reject(new Error("no data"));
+        };
+      };
+    });
+  };
+
+  function dateFormatter(ts) {
+    var date = new Date(ts);
+    var strYear = date.getFullYear().toString();
+    var strMonth = (date.getMonth()+1).toString().padStart(2,'0')
+    var strDate = date.getDate().toString().padStart(2,'0')
+    return `${strYear}-${strMonth}-${strDate}`
+  };
+
+  function updateContents([ws, newData]) {
+    return new Promise(function(resolve, reject) {
+      ws.close();
+      // update plot
+      var alphaAll = [95, 99, 100];
+      for (alpha of alphaAll) {
+        var jsonFig = JSON.parse(newData.figures[`pct${alpha}`]);
+        jsonFig.layout.autosize = false;
+        jsonFig.layout.dragmode = 'pan',
+        jsonFig.layout.height = 700;
+        jsonFig.layout.margin = {
+          l: 0,
+          r: 0,
+          b: 0,
+          t: 0,
+        };
+        jsonFig.config = {
+          displayModeBar: false,
+          scrollZoom: true,
+        };
+        Plotly.newPlot(`arp${alpha}plot`, jsonFig);
+      };
+
+      // update table
+      var jsonTable = JSON.parse(newData.table)
+      $("#arpTable tbody tr").remove(); // reset table
+      var tBody = $("#arpTable tbody")[0];
+      for (r of jsonTable) {
+        row = tBody.insertRow();
+        if (r.status === 'highest') {
+          row.classList.add('table-danger');
+          var statusText = '매우 높음';
+        } else if (r.status === 'higher') {
+          row.classList.add('table-warning');
+          var statusText = '높음';
+        } else if (r.status === 'high') {
+          row.classList.add('table-success');
+          var statusText = '다소 높음';
+        } else if (r.status === 'mid') {
+          row.classList.add('table-success');
+          var statusText = '중간 수준';
+        } else if (r.status === 'low') {
+          row.classList.add('table-success');
+          var statusText = '다소 낮음';
+        } else if (r.status === 'lower') {
+          row.classList.add('table-warning');
+          var statusText = '낮음';
+        } else if (r.status === 'lowest') {
+          row.classList.add('table-danger');
+          var statusText = '매우 낮음';
+        };
+        cell = row.insertCell();
+        cell.textContent = dateFormatter(r.fqe);
+        cell = row.insertCell();
+        cell.textContent = r.value.toFixed(4);
+        cell = row.insertCell();
+        cell.textContent = r.rank.toFixed(0);
+        cell = row.insertCell();
+        cell.textContent = (r.pct*100).toFixed(2);
+        cell = row.insertCell();
+        cell.textContent = statusText;
+      }
+      resolve('success');
+    });
+  };
+
+  function activateSpinner() {
+    console.log('activating spinner')
+    $('.overlay').each(function(i, overlay) {
+      // overlay.style.visibility = 'visible'
+      overlay.style.display = 'block';
+    });
+    $('.spanner').each(function(i, spinner) {
+      // spinner.style.visibility = 'visible'
+      spinner.style.display = 'block';
+    });
+  };
+
+  function deactivateSpinner() {
+    $('.overlay').each(function(i, overlay) {
+      overlay.style.display = 'none';
+    });
+    $('.spanner').each(function(i, spinner) {
+      spinner.style.display = 'none';
+    });
+  };
+
+  function viewSuccess(success) {
+    $('#arpSuccess')[0].style.display = 'block';
+    $('#arpFailed')[0].style.display = 'none';
+    deactivateSpinner();
+  };
+
+  function viewFailed(fail) {
+    $('#arpSuccess')[0].style.display = 'none';
+    $('#arpFailed')[0].style.display = 'block';
+    deactivateSpinner();
+  };
+
+
+  function updateAr() {
+    activateSpinner();
+    createWs()
+      .then(ws => sendInputs(ws))
+      .then(ws => receiveData(ws))
+      .then(([ws, newData]) => updateContents([ws, newData]))
+      .then(success => viewSuccess(success))
+      .catch(function(err) {
+        viewFailed();
+      });
+  };
+
+  $(document).ready(function() {
+    updateAr();
+  })
+</script>

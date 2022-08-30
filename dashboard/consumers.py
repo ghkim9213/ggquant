@@ -3,28 +3,28 @@
 
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from .tasks import *
 
-class TicksConsumer(AsyncWebsocketConsumer):
+class StkrptArConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
-        await self.channel_layer.group_add('ticks_ex',self.channel_name)
+        await self.channel_layer.group_add('stkrpt_ar', self.channel_name)
         await self.accept()
 
-    async def disconnect(self, code):
-        await self.channel_layer.group_discard('ticks_ex',self.channel_name)
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard('stkrpt_ar', self.channel_name)
 
-    async def send_new_data(self,event):
-        new_data = event['text']
-        await self.send(json.dumps(new_data))
+    async def receive(self, text_data):
+        inputs = json.loads(text_data)
+        stock_code, oc, ar_nm = (
+            inputs['stockCode'],
+            inputs['oc'],
+            inputs['arName']
+        )
+        if oc and ar_nm:
+            print('consumer has received data')
+            await get_stkrpt_ar_data(stock_code, oc, ar_nm)
 
-
-class MinutesConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.channel_layer.group_add('minutes_ex',self.channel_name)
-        await self.accept()
-
-    async def disconnect(self, code):
-        await self.channel_layer.group_discard('minutes_ex',self.channel_name)
-
-    async def send_new_data(self,event):
-        new_data = event['text']
-        await self.send(json.dumps(new_data))
+    async def send_data(self, event):
+        print('consumer sending data')
+        await self.send(event['text'])

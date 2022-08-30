@@ -9,7 +9,7 @@ import json
 def main(request):
     mvm = MainViewManager()
     context = {
-        'categ': mvm.categ,
+        'categ': mvm.CATEG,
     }
     return render(request,'dashboard/main.html',context)
 
@@ -24,14 +24,15 @@ def indicators(request):
 
 
 
-def stkrpt(request):
-    svm = StkrptViewManager(request)
+def stkrpt(request, stock_code):
+    svm = StkrptViewManager(request, stock_code)
     context = {
         'search_data': svm.search(),
         'corp': svm.corp,
-        'recent_history': svm.recent_history(),
-        'lar_viewer': svm.lar_viewer(),
-        'ar_ts_viewer': svm.ar_ts_viewer(),
-        'fs_viewer': svm.fs_viewer(),
+        'ar_viewer': svm.ar_viewer(),
+        # 'recent_history': svm.recent_history(),
+        # 'lar_viewer': svm.lar_viewer(),
+        # 'ar_ts_viewer': svm.ar_ts_viewer(),
+        # 'fs_viewer': svm.fs_viewer(),
     }
     return render(request,'dashboard/stkrpt.html',context)

@@ -6,6 +6,7 @@
 /ggdb/temp/
 
 tempwork.py
+localtasks.py
 
 *.pyc
 __pycache__/
