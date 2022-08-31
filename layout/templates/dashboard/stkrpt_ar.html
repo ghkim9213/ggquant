@@ -133,8 +133,10 @@
   const stockCode = "{{ corp.stockCode }}"
   function createWs() {
     return new Promise(function(resolve, reject) {
+      console.log(window.location.host)
+
       var ws = new WebSocket(
-        `ws://${window.location.host}/ws/dashboard/stkrpt/ar/${stockCode}`
+        `ws://${window.location.hostname}:8000/ws/dashboard/stkrpt/ar/${stockCode}`
       );
       resolve(ws);
     });
