@@ -9,14 +9,9 @@ import datetime
 
 # today = datetime.datetime.today().date()
 
-test_logger = get_task_logger(__name__)
-
-
 # @shared_task
 @sync_to_async
 def get_stkrpt_ar_data(stock_code, oc, ar_nm):
-    print('tasking from inputs')
-    test_logger.info('here')
     try:
         arp = ARPanel(ar_nm, oc, stock_code)
         table = arp.get_table().to_json(orient='records')
@@ -37,7 +32,6 @@ def get_stkrpt_ar_data(stock_code, oc, ar_nm):
     except KeyError:
         data = json.dumps(None)
 
-    print('get data')
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)('stkrpt_ar', {
             'type': 'send_data',

@@ -22,9 +22,7 @@ class StkrptArConsumer(AsyncWebsocketConsumer):
             inputs['arName']
         )
         if oc and ar_nm:
-            print('consumer has received data')
             await get_stkrpt_ar_data(stock_code, oc, ar_nm)
 
     async def send_data(self, event):
-        print('consumer sending data')
         await self.send(event['text'])

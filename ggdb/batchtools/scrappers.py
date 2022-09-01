@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from ggquant.my_settings import dart_crtfc_key
+from ggquant.db_settings import dart_crtfc_key
 from io import BytesIO
 
 import json, os, requests, zipfile, xmltodict, zipfile
