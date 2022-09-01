@@ -24,7 +24,8 @@ with open('.etc/secret_key.txt') as f:
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+from ggquant.local_settings import LOCAL_DEBUG
+DEBUG = LOCAL_DEBUG
 ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
@@ -111,15 +112,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ggquant.wsgi.application'
 
 # Channels
-with open('.etc/ggquant_redis_channels_endpoint.txt') as f:
-    REDIS_CHANNELS_URL = f"redis://{f.read().strip()}"
-
+from ggquant.local_settings import LOCAL_REDIS_CHANNELS_URL
 ASGI_APPLICATION = 'ggquant.asgi.application'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [REDIS_CHANNELS_URL],
+            'hosts': [LOCAL_REDIS_CHANNELS_URL],
         }
     }
 }
@@ -134,7 +133,7 @@ CELERY_TIMEZONE = 'Asia/Seoul'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = my_settings.DATABASES
+DATABASES = db_settings.DATABASES
 
 
 # User substitution

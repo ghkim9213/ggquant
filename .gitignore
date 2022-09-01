@@ -1,9 +1,10 @@
 .*
 !/.gitignore
 
-/venv/
-/static/
 /ggdb/temp/
+/ggquant/local_settings.py
+/static/
+/venv/
 
 tempwork.py
 localtasks.py
