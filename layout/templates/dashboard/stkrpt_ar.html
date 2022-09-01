@@ -134,7 +134,7 @@
   function createWs() {
     return new Promise(function(resolve, reject) {
       var ws = new WebSocket(
-        `ws://localhost:8000/ws/dashboard/stkrpt/ar/${stockCode}`
+        `ws://${window.location.hostname}/ws/dashboard/stkrpt/ar/${stockCode}`
       );
       resolve(ws);
     });

@@ -118,7 +118,7 @@ ASGI_APPLICATION = 'ggquant.asgi.application'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'config': {
+        'CONFIG': {
             'hosts': [(REDIS_CHANNELS_URL, 6378)],
         }
     }
