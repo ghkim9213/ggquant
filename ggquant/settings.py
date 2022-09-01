@@ -111,22 +111,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ggquant.wsgi.application'
 
 # Channels
-with open('.etc/ggquant_redis_endpoint.txt') as f:
-    REDIS_URL = f"redis://{f.read().strip()}"
+with open('.etc/ggquant_redis_channels_endpoint.txt') as f:
+    REDIS_CHANNELS_URL = f"redis://{f.read().strip()}"
 
 ASGI_APPLICATION = 'ggquant.asgi.application'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'config': {
-            'hosts': [(REDIS_URL, 6379)],
+            'hosts': [(REDIS_CHANNELS_URL, 6378)],
         }
     }
 }
 
 # Celery
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+with open('.etc/ggquant_redis_celery_endpoint.txt') as f:
+    REDIS_CELERY_URL = f"redis://{f.read().strip()}"
+CELERY_BROKER_URL = REDIS_CELERY_URL
+CELERY_RESULT_BACKEND = REDIS_CELERY_URL
 CELERY_TIMEZONE = 'Asia/Seoul'
 
 # Database
