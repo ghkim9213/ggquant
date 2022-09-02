@@ -325,7 +325,7 @@ class FsAccountSeries:
         # adjust by and bq based on fqe
         dfa = dfa.sort_values(['corp_id', 'fqe'])
         mgap = dfa.fqe.dt.month - dfa.fye
-        ydiff = -((mgap < 0) & (dfa.fye != 12)).astype(int)
+        ydiff = -((mgap <= 0) & (dfa.fye != 12)).astype(int)
         dfa['by'] = dfa.fqe.dt.year + ydiff
         dfa['bq'] = mgap.replace({-9:3, -6:6, -3:9, 0:12}) // 3
 
