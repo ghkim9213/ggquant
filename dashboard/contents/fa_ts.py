@@ -100,19 +100,6 @@ class FaTs:
             'graph_data': self._graph_data,
         })
 
-
-        # self.ts = self.ars.get_time_series(self.corp.stockCode)
-        # self._dateformatter = lambda tp: f"{tp.year}-{str(tp.month).zfill(2)}-{str(tp.day).zfill(2)}"
-        # self._hex_to_rgba = lambda h, opacity: (
-        #     f"rgba{tuple([int(h.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)] + [opacity])}"
-        # )
-        # self._graph_data = None
-        # self._layout = None
-        # self._global_props = None
-        # self._traces = None
-        # self._frames = None
-        # self._sliders = None
-
 def get_fa_path(fa, container):
     if fa.parent:
         new_container = [fa.parent] + container
