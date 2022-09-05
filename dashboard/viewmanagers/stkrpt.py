@@ -1,6 +1,7 @@
-from dashboard.models import *
-from django.db.models import Max
+from django.db.models import Max, Avg
+from functools import reduce
 from ggdb.batchtools.account_ratio import *
+from ggdb.models import *
 
 import asyncio, datetime
 
@@ -26,13 +27,89 @@ class StkrptViewManager:
         # # return json.dumps({c.corpName : c.stockCode for c in corp_all})
 
     def ar_viewer(self):
+        ar_all = AccountRatio.objects.all()
+        larv_all = []
+        oc='CFS'
+        for ar in ar_all:
+            arts = ar.values.filter(corp=self.corp, oc=oc)
+            if not arts.exists():
+                dummy_larv = AccountRatioValue(
+                    ar = ar,
+                    corp = self.corp,
+                    fqe = None,
+                    oc = None,
+                    value = None,
+                )
+                larv_all.append(dummy_larv)
+                continue
+
+            larv = arts.latest()
+            if not larv.value:
+                larv.fqe = None
+                larv_all.append(larv)
+                continue
+
+            s = pd.Series(
+                ar.values
+                .filter(corp__market=self.corp.market, oc=oc)
+                .values_list('value', flat=True)
+            )
+            lb, ub = s.quantile([.025, .975])
+            panel_avg = s.loc[(s>=lb)&(s<=ub)].mean()
+            larv.pdev = (larv.value / panel_avg -1) * 100
+            ts_avg = arts.aggregate(ts_avg=Avg('value'))['ts_avg']
+            larv.tdev = (larv.value / ts_avg -1) * 100
+
+            if len(arts) == 1:
+                larv_all.append(larv)
+                continue
+
+            larv_q1 = list(arts)[-2]
+            if larv.fqe - larv_q1.fqe <= datetime.timedelta(days=95):
+                larv.tdev_q1 = (larv.value / larv_q1.value - 1) * 100
+            else:
+                larv.tdev_q1 = None
+
+            if len(arts) < 5:
+                larv_all.append(larv)
+                continue
+
+            fqe_y1 = f"{larv.fqe.year-1}-{str(larv.fqe.month).zfill(2)}-{str(larv.fqe.day).zfill(2)}"
+            larv_y1 = arts.filter(fqe=fqe_y1).first()
+            larv.tdev_y1 = (larv.value / larv_y1.value - 1) * 100
+            larv_all.append(larv)
+
         return {
+            'larv_all': larv_all,
             'select_form': {
                 'oc_choices': ['CFS', 'OFS'],
                 'ar_choices': self.ar_all,
                 'alpha_choices': ['95', '99', '100'],
             },
         }
+
+    def fa_viewer(self):
+        fs_all = self.corp.fs.all().prefetch_related('details')
+        qs = reduce(
+            lambda a, b: a | b,
+            [(
+                fs.details
+                .exclude(accountId__startswith='entity')
+                .select_related('account')
+            ) for fs in fs_all]
+        )
+        fa_distinct = list(set([fd.account for fd in qs]))
+        fa_all = [{
+            'oc': fa.type.oc,
+            'nm': fa.accountNm,
+            'lk': fa.labelKor,
+            'ft_div': fa.type.type,
+        } for fa in fa_distinct if 'Abstract' not in fa.accountNm]
+        return {
+            'fa_all': json.dumps(fa_all)
+        }
+
+
 
     # def recent_history(self):
     #     today = datetime.datetime.today().date()

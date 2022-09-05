@@ -30,6 +30,7 @@ def stkrpt(request, stock_code):
         'search_data': svm.search(),
         'corp': svm.corp,
         'ar_viewer': svm.ar_viewer(),
+        'fa_viewer': svm.fa_viewer(),
         # 'recent_history': svm.recent_history(),
         # 'lar_viewer': svm.lar_viewer(),
         # 'ar_ts_viewer': svm.ar_ts_viewer(),

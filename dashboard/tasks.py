@@ -1,4 +1,6 @@
 from .contents.ar_panel import *
+from .contents.fa_ts import *
+
 from asgiref.sync import async_to_sync, sync_to_async
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -6,10 +8,10 @@ from channels.layers import get_channel_layer
 from ggdb.models import *
 
 import datetime
+import json
 
 # today = datetime.datetime.today().date()
 
-# @shared_task
 @sync_to_async
 def get_stkrpt_ar_data(stock_code, oc, ar_nm):
     try:
@@ -34,6 +36,25 @@ def get_stkrpt_ar_data(stock_code, oc, ar_nm):
 
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)('stkrpt_ar', {
+            'type': 'send_data',
+            'text': data
+        }
+    )
+
+
+@sync_to_async
+def get_stkrpt_fa_data(stock_code, oc, acnt_nm):
+    try:
+        fa_ts = FaTs(acnt_nm, oc, stock_code)
+        fa_ts.update_fa_info()
+        fa_ts.update_graph_data()
+        data = fa_ts.get_data()
+    except KeyError:
+        data = json.dumps(None)
+
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)('stkrpt_fa', {
             'type': 'send_data',
             'text': data
         }

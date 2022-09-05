@@ -1,3 +1,4 @@
+{% load static %}
 <style>
   #arpWrapper {
     position: relative;
@@ -40,88 +41,181 @@
     display: none;
   }
 </style>
+<div class="mb-3" id="faViewer">
+  <div class="formbox" id="faControlWrapper">
+    <table class="table table-hover" id="faControl">
+      <caption id="faSearchResult">
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col" style="width: 5%"></th>
+          <th scope="col" style="width: 10%">구분</th>
+          <th scope="col" style="width: 25%">계정명</th>
+          <th scope="col" style="width: 40%">표준경로</th>
+          <th scope="col" style="width: 10%">상태</th>
+          <th scope="col" style="width: 5%">값</th>
+          <th scope="col" style="width: 5%">변동율</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">
+            <button class="btn btn-outline-primary" id="activateFaSearchBtn" onclick="faSearch()">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </th>
+          <td id="selectCell">-</td>
+          <td id="searchCell">-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <canvas id="faChart"></canvas>
+</div>
+
 <div class="mb-3" id="arViewer">
-  <h4 class="mb-3 fw-bold">재무비율 분석</h4>
-  <p class="text-lead text-muted fs-5">재무비율 정의, 의미 (안정성, 수익성, 성장성, ...), 재무비율 분석의 중요성, ...  <a href="#">더보기</a></p>
-  <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 변동 및 분포</h5>
-  <p class="text-lead text-muted fs-5">{{ corp.corpName }}의 분기별 재무비율 변동 및 각 시점별 {{ corp.market }} 상장사의 재무비율 분포 정보를 조회합니다.</p>
-  <!-- select chart -->
-  <div id="selectAr">
-    <div class="d-flex flex-row">
-      <!-- select method     -->
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="tsMethod-addon">재무제표 구분</span>
-        <div class="form-control d-flex justify-content-center" aria-describedby="tsMethod-addon">
-          {% for oc in ar_viewer.select_form.oc_choices %}
-          <div class="form-check form-check-inline">
-            <input type="radio" class="form-check-input" onclick="updateAr()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
-            <label for="{{ oc }}" class="form-check-label" >{% if oc == 'CFS' %}연결{% else %}별도{% endif %}</label>
-          </div>
+  <div class="mb-5" id="arViewerHeader">
+    <h4 class="mb-3 fw-bold">재무비율 분석</h4>
+    <p class="text-lead text-muted fs-5">재무비율 정의, 의미 (안정성, 수익성, 성장성, ...), 재무비율 분석의 중요성, Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ullam ex quae, impedit praesentium, iusto obcaecati qui eos iure alias, voluptates veniam harum amet error voluptate, assumenda est nihil quisquam. Quas!...  <a href="#">더보기</a></p>
+  </div>
+  <div class="mb-5" id="arLatest">
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 현황</h5>
+    <div id="larTable">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>재무비율명</th>
+            <th>구분</th>
+            <th>기준일</th>
+            <th>값</th>
+            <th>전기 대비</th>
+            <th>전년 동기 대비</th>
+            <th>평년 대비</th>
+            <th>시장 평균 대비</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for larv in ar_viewer.larv_all %}
+          <tr>
+            <td>{{ larv.ar.labelKor }}</td>
+            <td>{{ larv.ar.div }}</td>
+            <td>{% if larv.fqe %}{{ larv.fqe|date:"Y-m-d" }}{% else %}-{% endif %}</td>
+            <td class="fw-bold">{% if larv.value %}{{ larv.value|floatformat:"4" }}{% else %}-{% endif %}</td>
+            {% if larv.tdev_q1 %}
+            <td class="text-{% if larv.tdev_q1 > 0 %}danger{% elif larv.tdev_q1 == 0 %}dark{% elif larv.tdev_q1 < 0 %}primary{% endif %}">{% if larv.tdev_q1 > 0 %}+{% endif %}{{ larv.tdev_q1|floatformat:"2" }}%</td>
+            {% else %}
+            <td>-</td>
+            {% endif %}
+            {% if larv.tdev_y1 %}
+            <td class="text-{% if larv.tdev_y1 > 0 %}danger{% elif larv.tdev_y1 == 0 %}dark{% elif larv.tdev_y1 < 0 %}primary{% endif %}">{% if larv.tdev_y1 > 0 %}+{% endif %}{{ larv.tdev_y1|floatformat:"2" }}%</td>
+            {% else %}
+            <td>-</td>
+            {% endif %}
+            {% if larv.tdev %}
+            <td class="text-{% if larv.tdev > 0 %}danger{% elif larv.tdev == 0 %}dark{% elif larv.tdev < 0 %}primary{% endif %}">{% if larv.tdev > 0 %}+{% endif %}{{ larv.tdev|floatformat:"2" }}%</td>
+            {% else %}
+            <td>-</td>
+            {% endif %}
+            {% if larv.pdev %}
+            <td class="text-{% if larv.pdev > 0 %}danger{% elif larv.pdev == 0 %}dark{% elif larv.pdev < 0 %}primary{% endif %}">{% if larv.pdev > 0 %}+{% endif %}{{ larv.pdev|floatformat:"2" }}%</td>
+            {% else %}
+            <td>-</td>
+            {% endif %}
+          </tr>
           {% endfor %}
+        </tbody>
+      </table>
+      <p class="form-text mb-1">* 위 테이블은 OPEN DART에 제출된 {{ corp.corpName }}의 연결재무제표로부터 산출된 재무비율의 현황을 나타냅니다.</p>
+      <p class="form-text mb-1">* 평년 대비: 해당 재무비율에 대한 {{ corp.corpName }}의 전기간 평균 대비 기준일 값의 비율을 나타냅니다. 예를 들어, 해당 종목의 전기간 평균이 1이고 기준일 값이 1.1이라면 +10%를, 0.9이라면 -10%를 표시합니다.</p>
+      <p class="form-text mb-1">* 시장 평균 대비: 해당 재무비율에 대한 {{ corp.market }} 전기간 (95% 절삭) 평균 대비 {{ corp.corpName }} 기준일 값의 비율을 나타냅니다. 예를 들어, {{ corp.market }} 상장사의 재무비율 전기간 평균이 1이고 해당 종목의 기준일 값이 1.1이라면 +10%를, 0.9라면 -10%를 표시합니다.</p>
+    </div>
+  </div>
+  <div id="arPanel">
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 변동 및 분포</h5>
+    <p class="text-lead text-muted fs-5">{{ corp.corpName }}의 분기별 재무비율 변동 및 각 시점별 {{ corp.market }} 상장사의 재무비율 분포 정보를 조회합니다.</p>
+    <!-- select chart -->
+    <div id="selectAr">
+      <div class="d-flex flex-row">
+        <!-- select method     -->
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="tsMethod-addon">재무제표 구분</span>
+          <div class="form-control d-flex justify-content-center" aria-describedby="tsMethod-addon">
+            {% for oc in ar_viewer.select_form.oc_choices %}
+            <div class="form-check form-check-inline">
+              <input type="radio" class="form-check-input" onclick="updateAr()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
+              <label for="{{ oc }}" class="form-check-label" >{% if oc == 'CFS' %}연결{% else %}별도{% endif %}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <!-- select ar -->
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="arName-addon">재무비율 선택</span>
+          <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateAr()">
+            {% for ar in ar_viewer.select_form.ar_choices %}
+            <option class="text-center" value="{{ ar.name }}" {% if ar.name == 'ReturnOnEquity' %}selected{% endif %}>{{ ar.labelKor }}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
-      <!-- select ar -->
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="arName-addon">재무비율 선택</span>
-        <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateAr()">
-          {% for ar in ar_viewer.select_form.ar_choices %}
-          <option class="text-center" value="{{ ar.name }}" {% if ar.name == 'ReturnOnEquity' %}selected{% endif %}>{{ ar.labelKor }}</option>
-          {% endfor %}
-        </select>
-      </div>
     </div>
-  </div>
-  <div class="formbox mb-3" id="arAbstract">
-    <h6>[ar name]</h6>
-    <p>[abstract] Lorem ipsum dolor sit amet, consectetur adipisicing elit. Provident voluptatum praesentium laborum quod, qui natus nobis tempore sint error, optio minima illum! Illo cupiditate a quos dolore hic, ipsa. Mollitia. <a href="#">show more</a></p>
-  </div>
+    <div class="formbox mb-3" id="arAbstract">
+      <h6>[ar name]</h6>
+      <p>[abstract] Lorem ipsum dolor sit amet, consectetur adipisicing elit. Provident voluptatum praesentium laborum quod, qui natus nobis tempore sint error, optio minima illum! Illo cupiditate a quos dolore hic, ipsa. Mollitia. <a href="#">show more</a></p>
+    </div>
 
-  <!-- ar panel plot area -->
-  <div id="arpWrapper">
-    <div class="overlay"></div>
-    <div class="spanner">
-      <div class="spinner-grow text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-      <p class="text-light fw-bold">데이터베이스 조회중</p>
-    </div>
-    <div style="min-height: 800px;">
-      <div id="arpSuccess">
-        <p class="text-lead fw-bold">절삭수준 선택</p>
-        <ul class="nav nav-pills mb-3" id="alphaNav" role="tablist">
-          {% for alpha in ar_viewer.select_form.alpha_choices %}
-          <li class="nav-item" role="presentation">
-            <button class="nav-link {% if forloop.first %}active{% endif %}" id="arpp{{ alpha }}-tab" data-bs-toggle="pill" data-bs-target="#arpp{{ alpha }}" type="button" role="tab" aria-controls="arpp{{ alpha }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">{{ alpha }}%</button>
-          </li>
-          {% endfor %}
-        </ul>
-        <p class="text-lead fw-bold">조회 결과  </p>
-        <div class="row">
-          <div class="col-7" id="arpPlot">
-            <div class="tab-content" id="arpp-tabContent">
-              {% for alpha in ar_viewer.select_form.alpha_choices %}
-              <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="arpp{{ alpha }}" role="tabpanel" aria-labelledby="arpp{{ alpha }}-tab">
-                <div class="arp-plot" id="arp{{ alpha }}plot"></div>
+    <!-- ar panel plot area -->
+    <div id="arpWrapper">
+      <div class="overlay"></div>
+      <div class="spanner">
+        <div class="spinner-grow text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <p class="text-light fw-bold">데이터베이스 조회중</p>
+      </div>
+      <div style="min-height: 800px;">
+        <div id="arpSuccess">
+          <p class="text-lead fw-bold">절삭수준 선택</p>
+          <ul class="nav nav-pills mb-3" id="alphaNav" role="tablist">
+            {% for alpha in ar_viewer.select_form.alpha_choices %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {% if forloop.first %}active{% endif %}" id="arpp{{ alpha }}-tab" data-bs-toggle="pill" data-bs-target="#arpp{{ alpha }}" type="button" role="tab" aria-controls="arpp{{ alpha }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">{{ alpha }}%</button>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="text-lead fw-bold">조회 결과  </p>
+          <div class="row">
+            <div class="col-7" id="arpPlot">
+              <div class="tab-content" id="arpp-tabContent">
+                {% for alpha in ar_viewer.select_form.alpha_choices %}
+                <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="arpp{{ alpha }}" role="tabpanel" aria-labelledby="arpp{{ alpha }}-tab">
+                  <div class="arp-plot" id="arp{{ alpha }}plot"></div>
+                </div>
+                {% endfor %}
               </div>
-              {% endfor %}
+            </div>
+            <div class="col-5 table-responsive">
+              <table class="table table-hover text-nowrap" id="arpTable">
+                <thead class="fix-header">
+                  <tr>
+                    <th>날짜</th>
+                    <th>값</th>
+                    <th>순위</th>
+                    <th>순위(%)</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
           </div>
-          <div class="col-5 table-responsive">
-            <table class="table table-hover text-nowrap" id="arpTable">
-              <thead class="fix-header">
-                <tr>
-                  <th>날짜</th>
-                  <th>값</th>
-                  <th>순위</th>
-                  <th>순위(%)</th>
-                  <th>상태</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
         </div>
-      </div>
-      <div class="formbox position-relative" id="arpFailed" style="min-height: 800px;">
-        <p class="position-absolute top-50 start-50 translate-middle text-muted fs-2">조회 가능한 계열이 존재하지 않습니다.</p>
+        <div class="formbox position-relative" id="arpFailed" style="min-height: 800px;">
+          <p class="position-absolute top-50 start-50 translate-middle text-muted fs-2">조회 가능한 계열이 존재하지 않습니다.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -141,7 +235,6 @@
   };
   function sendInputs(ws) {
     return new Promise(function(resolve, reject) {
-      console.log('sending inputs')
       var wsInputs = {
         stockCode: "{{ corp.stockCode }}",
         oc: $("input[name=oc]:checked").val(),
@@ -175,7 +268,7 @@
     return `${strYear}-${strMonth}-${strDate}`
   };
 
-  function updateContents([ws, newData]) {
+  function updateContents(ws, newData) {
     return new Promise(function(resolve, reject) {
       ws.close();
       // update plot
@@ -242,7 +335,6 @@
   };
 
   function activateSpinner() {
-    console.log('activating spinner')
     $('.overlay').each(function(i, overlay) {
       // overlay.style.visibility = 'visible'
       overlay.style.display = 'block';
@@ -274,13 +366,12 @@
     deactivateSpinner();
   };
 
-
   function updateAr() {
     activateSpinner();
     createWs()
       .then(ws => sendInputs(ws))
       .then(ws => receiveData(ws))
-      .then(([ws, newData]) => updateContents([ws, newData]))
+      .then(([ws, newData]) => updateContents(ws, newData))
       .then(success => viewSuccess(success))
       .catch(function(err) {
         viewFailed();
@@ -290,4 +381,319 @@
   $(document).ready(function() {
     updateAr();
   })
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // create fa chart
+  const faChartConfig = {
+    type: 'scatter',
+    data: {
+      labels: null,
+      datasets: null,
+    },
+    options: {
+      scales: {
+        "yl": {
+          type: 'logarithmic',
+          display: true,
+          positon: 'left',
+          title: {
+            text: '값',
+            display: true,
+          },
+        },
+        "yr": {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            text: '변동율',
+            display: true,
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+        }
+      }
+    }
+  };
+  const faChart = new Chart(
+    document.getElementById('faChart'),
+    faChartConfig
+  );
+</script>
+<script>
+  // faSearch
+  function activateFaSearch() {
+    return new Promise(function(resolve) {
+      $('#selectCell')[0].innerHTML = `
+        <select class="form-select" id="ocSelected">
+          <option value="CFS" selected>연결</option>
+          <option value="OFS">별도</option>
+        </select>
+      `;
+      $('#searchCell')[0].innerHTML = `
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input class="form-control" type="text" id="faSearched" placeholder="당기순이익(손실)">
+        </div>
+      `;
+      $('#faSearchResult')[0].innerHTML = `
+        <button class="btn btn-close m-3" onclick="deactivateFaSearch()"></button>
+        <div class="d-flex flex-row">
+          <p class="form-text m-3 fw-bold">매치된 계정</p>
+          <div class="m-3" id="faMatched">
+            <span class="form-text m-3">계정명을 입력하세요</span>
+          </div>
+        </div>
+        <div>
+          <p class="form-text m-3 fw-bold">조회 가능 계정 목록</p>
+          <div class="m-3" id="faFiltered-bs">
+            <p class="form-text">재무상태표</p>
+          </div>
+          <div class="m-3" id="faFiltered-pl">
+            <p class="form-text">손익계산서</p>
+          </div>
+          <div class="m-3" id="faFiltered-cf">
+            <p class="form-text">현금흐름표</p>
+          </div>
+        </div>
+      `;
+
+      resolve(JSON.parse("{{ fa_viewer.fa_all | escapejs }}"))
+    });
+  };
+  function deactivateFaSearch() {
+    $('#selectCell')[0].innerHTML = '-';
+    $('#searchCell')[0].innerHTML = '-';
+    $('#faSearchResult')[0].innerHTML = '';
+  };
+  function koreanAscending(a, b) {
+    return (a.lk < b.lk)?-1:(a.lk == b.lk)?0:1;
+  };
+  function findResult(faAll) {
+    $('#ocSelected').change(function() {
+
+      // subset the universe
+      var oc = $(this).val()
+
+      $('#faSearched').keyup(function() {
+
+        // reset result wrapper
+        $('#faFiltered-bs').find('span').remove();
+        $('#faFiltered-pl').find('span').remove();
+        $('#faFiltered-cf').find('span').remove();
+
+        // filter
+        var fltrd = faAll.filter( x =>
+          (x.oc === oc)
+          && (x.lk.includes($(this).val()))
+        ).sort(koreanAscending);
+
+        // fill the results
+        for (f of fltrd) {
+          var resId = `faFiltered-${f.ft_div.toLowerCase()}`;
+          $(`#${resId}`).append(`
+            <span class="badge rounded-pill bg-secondary" type="button" onclick="queryFaData('${stockCode}', '${f.oc}', '${f.nm}')">
+              ${f.lk}
+            </span>
+          `)
+        };
+
+        // match
+        $('#faMatched').find('span').remove();
+        var matched = faAll.find( x =>
+          (x.oc == oc)
+          && (x.lk == $(this).val())
+        );
+        if (matched === undefined) {
+          $('#faMatched').append(`
+            <span class="form-text">매치된 계정이 없습니다. 계정명을 정확히 입력해주세요.</span>
+          `)
+        } else {
+          $('#faMatched').append(`
+            <span class="badge rounded-pill bg-success" type="button" onclick="queryFaData('${stockCode}', '${matched.oc}', '${matched.nm}')">
+              ${matched.lk}
+            </span>
+          `)
+        };
+      }).trigger('keyup');
+    }).trigger('change');
+  }
+  function faSearch() {
+    activateFaSearch()
+    .then(faAll => findResult(faAll))
+  };
+  function addFaRow(rowId) {
+    return new Promise(function(resolve) {
+      console.log('add fa row')
+      $('#faControl tbody').append(`
+      <tr id=${rowId}>
+        <th scope="row"><button class="btn btn-close remove-fa-row"></button></th>
+        <td class="fa-oc">-</td>
+        <td class="fa-lk">-</td>
+        <td class="fa-path">-</td>
+        <td class="fa-status">
+          <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
+        </td>
+        <td class="fa-chart-value-handler">-</td>
+        <td class="fa-chart-growth-handler">-</td>
+      </tr>
+      `);
+      resolve(true) // resolve dummy for promise chaining
+    });
+  };
+
+  // websocket
+  function createFaWs(faName) {
+    return new Promise(function(resolve) {
+      resolve(
+        new WebSocket(
+          `ws://${window.location.host}/ws/dashboard/stkrpt/fa/${faName}/${stockCode}`
+        )
+      );
+    });
+  };
+  function sendFaInputs(ws, stockCode, oc, faName) {
+    return new Promise(function(resolve) {
+      console.log('send inputs');
+      ws.onopen = function() {
+        ws.send(JSON.stringify({
+          stockCode: stockCode,
+          oc: oc,
+          faName: faName,
+        }))
+      };
+      resolve(ws);
+    })
+  };
+  function receiveFaData(ws) {
+    return new Promise(function(resolve, reject) {
+      ws.onmessage = function(e) {
+        var newData = JSON.parse(e.data);
+        if (newData !== null) {
+          resolve([ws, newData]);
+        } else {
+          reject(new Error("no data"))
+        };
+      };
+    });
+  };
+
+  // update contents
+  function updateFaControl(newData, rowId) {
+    let row = $(`#${rowId}`);
+    let ocLk = ((newData.fa_info.oc === 'CFS') ? '연결':'별도');
+    row.find('.fa-oc').html(ocLk);
+    row.find('.fa-lk').html(newData.fa_info.lk)
+    row.find('.fa-path').html(newData.fa_info.path)
+    row.find('.fa-status').html('전시 중')
+    row.find('.fa-status').addClass('text-success')
+    row.find('.fa-chart-value-handler').empty().append(`
+    <div class="form-check form-switch">
+      <input type="checkbox" class="form-check-input" checked>
+    </div>
+    `);
+    row.find('.fa-chart-growth-handler').empty().append(`
+    <div class="form-check form-switch">
+      <input type="checkbox" class="form-check-input" checked>
+    </div>
+    `);
+  }
+  function updateFaChart(newData) {
+    let yValue = JSON.parse(newData.graph_data.y_value);
+    let yGrowth = JSON.parse(newData.graph_data.y_growth);
+    let x = JSON.parse(newData.graph_data.x);
+    let controlRow = $(`#faControlRow-${newData.fa_info.oc}-${newData.fa_info.nm}`)
+    faChart.data.labels = x.map(tp => dateFormatter(tp));
+    let ocLk = (newData.fa_info.oc === 'CFS') ? '연결':'별도';
+    let valLabel = `${newData.fa_info.lk} (${ocLk})`;
+    let growthLabel = `${newData.fa_info.lk} 변동 (${ocLk})`;
+    faChart.data.datasets.push({
+      type: 'line',
+      label: valLabel,
+      data: yValue,
+      yAxisID: 'yl',
+    });
+    controlRow.find('.fa-chart-value-handler input').attr(
+      'data-control',
+      valLabel
+    );
+    faChart.data.datasets.push({
+      type: 'bar',
+      label: growthLabel,
+      data: yGrowth,
+      yAxisID: 'yr',
+    });
+    controlRow.find('.fa-chart-growth-handler input').attr(
+      'data-control',
+      growthLabel
+    )
+    faChart.update();
+  };
+  function updateFaContents(ws, newData, rowId) {
+    return new Promise(function(resolve) {
+      // close websocket
+      ws.close();
+      // update fa control
+      updateFaControl(newData, rowId);
+      // update chart
+      updateFaChart(newData);
+
+      resolve(true) // resolve dummy for chaining
+    })
+  };
+  function activateFaChartHandler() {
+    $('.fa-chart-value-handler input').change(function() {
+      let dataLabel = $(this).attr('data-control')
+      let data = faChart.data.datasets.find(x => x.label === dataLabel)
+      if ($(this).is(":checked")) {
+        data.hidden = false
+      } else {
+        data.hidden = true
+      }
+      faChart.update();
+    });
+    $('.fa-chart-growth-handler input').change(function() {
+      let dataLabel = $(this).attr('data-control')
+      let data = faChart.data.datasets.find(x => x.label === dataLabel)
+      if ($(this).is(":checked")) {
+        data.hidden = false
+      } else {
+        data.hidden = true
+      }
+      faChart.update();
+    });
+    $('.remove-fa-row').on('click', function() {
+      let row = $(this).closest('tr')
+      row.find('input').each(function() {
+        let dataLabel = $(this).attr('data-control')
+        faChart.data.datasets = faChart.data.datasets.filter(x =>
+          x.label != dataLabel
+        );
+        faChart.update();
+      });
+      row.remove();
+      // console.log(row.find('input'))
+    })
+  }
+  function queryFaData(stockCode, oc, faName) {
+    deactivateFaSearch();
+    let rowId = `faControlRow-${oc}-${faName}`
+    addFaRow(rowId)
+    .then(dummy => createFaWs(faName))
+    .then(ws => sendFaInputs(ws, stockCode, oc, faName))
+    .then(ws => receiveFaData(ws))
+    .then(([ws, newData]) => updateFaContents(ws, newData, rowId))
+    .then(dummy => activateFaChartHandler())
+  };
+
+  $(document).ready(function() {
+    for (faName of ['Assets', 'Equity', 'Liabilities']) {
+      queryFaData(stockCode, 'CFS', faName)
+    }
+  });
+
+
 </script>
