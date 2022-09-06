@@ -675,7 +675,6 @@
         faChart.update();
       });
       row.remove();
-      // console.log(row.find('input'))
     })
   }
   function queryFaData(stockCode, oc, faName) {
@@ -689,8 +688,9 @@
     .then(dummy => activateFaChartHandler())
   };
 
-  $(document).ready(function() {
-    for (faName of ['Assets', 'Equity']) {
+  $(document).ready(async function() {
+    for (faName of ['Assets', 'Equity', 'Liabilities']) {
+      console.log(faName)
       queryFaData(stockCode, 'CFS', faName)
     }
   });
