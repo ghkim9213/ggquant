@@ -40,43 +40,11 @@
   #arpFailed {
     display: none;
   }
+
+  .chart-container {
+    position: relative;
+  }
 </style>
-<div class="mb-3" id="faViewer">
-  <div class="formbox" id="faControlWrapper">
-    <table class="table table-hover" id="faControl">
-      <caption id="faSearchResult">
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col" style="width: 5%"></th>
-          <th scope="col" style="width: 10%">구분</th>
-          <th scope="col" style="width: 25%">계정명</th>
-          <th scope="col" style="width: 40%">표준경로</th>
-          <th scope="col" style="width: 10%">상태</th>
-          <th scope="col" style="width: 5%">값</th>
-          <th scope="col" style="width: 5%">변동율</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-      <tfoot>
-        <tr>
-          <th scope="row">
-            <button class="btn btn-outline-primary" id="activateFaSearchBtn" onclick="faSearch()">
-              <i class="bi bi-plus-lg"></i>
-            </button>
-          </th>
-          <td id="selectCell">-</td>
-          <td id="searchCell">-</td>
-          <td>-</td>
-          <td>-</td>
-          <td>-</td>
-          <td>-</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-  <canvas id="faChart"></canvas>
-</div>
 
 <div class="mb-3" id="arViewer">
   <div class="mb-5" id="arViewerHeader">
@@ -84,9 +52,9 @@
     <p class="text-lead text-muted fs-5">재무비율 정의, 의미 (안정성, 수익성, 성장성, ...), 재무비율 분석의 중요성, Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ullam ex quae, impedit praesentium, iusto obcaecati qui eos iure alias, voluptates veniam harum amet error voluptate, assumenda est nihil quisquam. Quas!...  <a href="#">더보기</a></p>
   </div>
   <div class="mb-5" id="arLatest">
-    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 현황</h5>
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 현황 상세</h5>
     <div id="larTable">
-      <table class="table table-hover">
+      <table class="table">
         <thead>
           <tr>
             <th>재무비율명</th>
@@ -107,22 +75,22 @@
             <td>{% if larv.fqe %}{{ larv.fqe|date:"Y-m-d" }}{% else %}-{% endif %}</td>
             <td class="fw-bold">{% if larv.value %}{{ larv.value|floatformat:"4" }}{% else %}-{% endif %}</td>
             {% if larv.tdev_q1 %}
-            <td class="text-{% if larv.tdev_q1 > 0 %}danger{% elif larv.tdev_q1 == 0 %}dark{% elif larv.tdev_q1 < 0 %}primary{% endif %}">{% if larv.tdev_q1 > 0 %}+{% endif %}{{ larv.tdev_q1|floatformat:"2" }}%</td>
+            <td class="text-{% if larv.tdev_q1 > 1 %}danger{% elif larv.tdev_q1 == 1 %}dark{% elif larv.tdev_q1 < 1 %}primary{% endif %}">{{ larv.tdev_q1|floatformat:"2" }}배</td>
             {% else %}
             <td>-</td>
             {% endif %}
             {% if larv.tdev_y1 %}
-            <td class="text-{% if larv.tdev_y1 > 0 %}danger{% elif larv.tdev_y1 == 0 %}dark{% elif larv.tdev_y1 < 0 %}primary{% endif %}">{% if larv.tdev_y1 > 0 %}+{% endif %}{{ larv.tdev_y1|floatformat:"2" }}%</td>
+            <td class="text-{% if larv.tdev_y1 > 1 %}danger{% elif larv.tdev_y1 == 1 %}dark{% elif larv.tdev_y1 < 1 %}primary{% endif %}">{{ larv.tdev_y1|floatformat:"2" }}배</td>
             {% else %}
             <td>-</td>
             {% endif %}
             {% if larv.tdev %}
-            <td class="text-{% if larv.tdev > 0 %}danger{% elif larv.tdev == 0 %}dark{% elif larv.tdev < 0 %}primary{% endif %}">{% if larv.tdev > 0 %}+{% endif %}{{ larv.tdev|floatformat:"2" }}%</td>
+            <td class="text-{% if larv.tdev > 1 %}danger{% elif larv.tdev == 1 %}dark{% elif larv.tdev < 1 %}primary{% endif %}">{{ larv.tdev|floatformat:"2" }}배</td>
             {% else %}
             <td>-</td>
             {% endif %}
             {% if larv.pdev %}
-            <td class="text-{% if larv.pdev > 0 %}danger{% elif larv.pdev == 0 %}dark{% elif larv.pdev < 0 %}primary{% endif %}">{% if larv.pdev > 0 %}+{% endif %}{{ larv.pdev|floatformat:"2" }}%</td>
+            <td class="text-{% if larv.pdev > 1 %}danger{% elif larv.pdev == 1 %}dark{% elif larv.pdev < 1 %}primary{% endif %}">{{ larv.pdev|floatformat:"2" }}배</td>
             {% else %}
             <td>-</td>
             {% endif %}
@@ -130,12 +98,14 @@
           {% endfor %}
         </tbody>
       </table>
-      <p class="form-text mb-1">* 위 테이블은 OPEN DART에 제출된 {{ corp.corpName }}의 연결재무제표로부터 산출된 재무비율의 현황을 나타냅니다.</p>
-      <p class="form-text mb-1">* 평년 대비: 해당 재무비율에 대한 {{ corp.corpName }}의 전기간 평균 대비 기준일 값의 비율을 나타냅니다. 예를 들어, 해당 종목의 전기간 평균이 1이고 기준일 값이 1.1이라면 +10%를, 0.9이라면 -10%를 표시합니다.</p>
-      <p class="form-text mb-1">* 시장 평균 대비: 해당 재무비율에 대한 {{ corp.market }} 전기간 (95% 절삭) 평균 대비 {{ corp.corpName }} 기준일 값의 비율을 나타냅니다. 예를 들어, {{ corp.market }} 상장사의 재무비율 전기간 평균이 1이고 해당 종목의 기준일 값이 1.1이라면 +10%를, 0.9라면 -10%를 표시합니다.</p>
+      <caption>
+        <p class="form-text mb-1">* 위 테이블은 OPEN DART에 제출된 {{ corp.corpName }}의 연결재무제표로부터 산출된 재무비율의 현황을 나타냅니다.</p>
+        <p class="form-text mb-1">* 평년 대비: 해당 재무비율에 대한 {{ corp.corpName }}의 전기간 평균 대비 기준일 값의 비율을 나타냅니다. 예를 들어, 해당 종목의 전기간 평균이 1이고 기준일 값이 1.1이라면 '1.1배'를, 0.9이라면 '0.9배'를 표시합니다.</p>
+        <p class="form-text mb-1">* 시장 평균 대비: 해당 재무비율에 대한 {{ corp.market }} 전기간 (95% 절삭) 평균 대비 {{ corp.corpName }} 기준일 값의 비율을 나타냅니다. 예를 들어, {{ corp.market }} 상장사의 재무비율 전기간 평균이 1이고 해당 종목의 기준일 값이 1.1이라면 '1.1배'를, 0.9라면 '0.9배'를 표시합니다.</p>
+      </caption>
     </div>
   </div>
-  <div id="arPanel">
+  <div class="mb-5" id="arPanel">
     <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 변동 및 분포</h5>
     <p class="text-lead text-muted fs-5">{{ corp.corpName }}의 분기별 재무비율 변동 및 각 시점별 {{ corp.market }} 상장사의 재무비율 분포 정보를 조회합니다.</p>
     <!-- select chart -->
@@ -147,7 +117,7 @@
           <div class="form-control d-flex justify-content-center" aria-describedby="tsMethod-addon">
             {% for oc in ar_viewer.select_form.oc_choices %}
             <div class="form-check form-check-inline">
-              <input type="radio" class="form-check-input" onclick="updateAr()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
+              <input type="radio" class="form-check-input" onclick="updateArp()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
               <label for="{{ oc }}" class="form-check-label" >{% if oc == 'CFS' %}연결{% else %}별도{% endif %}</label>
             </div>
             {% endfor %}
@@ -156,7 +126,7 @@
         <!-- select ar -->
         <div class="input-group mb-3">
           <span class="input-group-text" id="arName-addon">재무비율 선택</span>
-          <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateAr()">
+          <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateArp()">
             {% for ar in ar_viewer.select_form.ar_choices %}
             <option class="text-center" value="{{ ar.name }}" {% if ar.name == 'ReturnOnEquity' %}selected{% endif %}>{{ ar.labelKor }}</option>
             {% endfor %}
@@ -178,34 +148,24 @@
       </div>
       <div style="min-height: 800px;">
         <div id="arpSuccess">
-          <p class="text-lead fw-bold">절삭수준 선택</p>
-          <ul class="nav nav-pills mb-3" id="alphaNav" role="tablist">
-            {% for alpha in ar_viewer.select_form.alpha_choices %}
-            <li class="nav-item" role="presentation">
-              <button class="nav-link {% if forloop.first %}active{% endif %}" id="arpp{{ alpha }}-tab" data-bs-toggle="pill" data-bs-target="#arpp{{ alpha }}" type="button" role="tab" aria-controls="arpp{{ alpha }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">{{ alpha }}%</button>
-            </li>
-            {% endfor %}
-          </ul>
-          <p class="text-lead fw-bold">조회 결과  </p>
           <div class="row">
-            <div class="col-7" id="arpPlot">
-              <div class="tab-content" id="arpp-tabContent">
-                {% for alpha in ar_viewer.select_form.alpha_choices %}
-                <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="arpp{{ alpha }}" role="tabpanel" aria-labelledby="arpp{{ alpha }}-tab">
-                  <div class="arp-plot" id="arp{{ alpha }}plot"></div>
-                </div>
-                {% endfor %}
+            <div class="row col-8" id="arpChart">
+              <div class="chart-container">
+                <canvas id="arpTsChart"></canvas>
+              </div>
+              <div class="chart-container">
+                <canvas id="arpDistChart"></canvas>
               </div>
             </div>
-            <div class="col-5 table-responsive">
-              <table class="table table-hover text-nowrap" id="arpTable">
+            <div class="col-4 table-responsive" style="min-height: 800px;">
+              <table class="table table-hover text-nowrap" id="arpChartControl">
                 <thead class="fix-header">
                   <tr>
                     <th>날짜</th>
                     <th>값</th>
                     <th>순위</th>
-                    <th>순위(%)</th>
-                    <th>상태</th>
+                    <th>백분위</th>
+                    <th>평가</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -219,23 +179,128 @@
       </div>
     </div>
   </div>
+  <div class="mb-5" id="singleFaViewer">
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무계정별 조회</h5>
+    <div>
+      <table class="table table-hover" id="faChartControl">
+        <caption id="faSearchResult">
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" style="width: 5%"></th>
+            <th scope="col" style="width: 10%">구분</th>
+            <th scope="col" style="width: 25%">계정명</th>
+            <th scope="col" style="width: 40%">표준경로</th>
+            <th scope="col" style="width: 10%">상태</th>
+            <th scope="col" style="width: 5%">값</th>
+            <th scope="col" style="width: 5%">변동율</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">
+              <button class="btn btn-outline-primary" id="activateFaSearchBtn" onclick="faSearch()">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </th>
+            <td id="selectCell">-</td>
+            <td id="searchCell">-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <canvas id="faChart"></canvas>
+  </div>
+  <div class="mb-5" id="customArViewer">
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 나의 재무비율 만들기</h5>
+  </div>
 </div>
 
 
-<script src="https://cdn.plot.ly/plotly-2.14.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  // global variables
   const stockCode = "{{ corp.stockCode }}"
-  function createWs() {
-    return new Promise(function(resolve, reject) {
-      var ws = new WebSocket(
-        `ws://${window.location.host}/ws/dashboard/stkrpt/ar/${stockCode}`
-      );
-      resolve(ws);
+  function dateFormatter(ts) {
+    var date = new Date(ts);
+    var strYear = date.getFullYear().toString();
+    var strMonth = (date.getMonth()+1).toString().padStart(2,'0')
+    var strDate = date.getDate().toString().padStart(2,'0')
+    return `${strYear}-${strMonth}-${strDate}`
+  };
+  const defaultColors = [
+    '#457CA2', "#DC3912", "#FF9900", "#109618", "#990099", "#3B3EAC", "#0099C6",
+    "#DD4477", "#66AA00", "#B82E2E", "#316395", "#994499", "#22AA99", "#AAAA11",
+    "#6633CC", "#E67300", "#8B0707", "#329262", "#5574A6", "#651067"
+  ];
+  function hexToRgb(hex, alpha) {
+    let r = parseInt(hex.slice(1, 3), 16),
+      g = parseInt(hex.slice(3, 5), 16),
+      b = parseInt(hex.slice(5, 7), 16);
+
+    if (0 <= alpha && alpha <= 1) {
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    } else {
+      return `rgb(${r}, ${g}, ${b})`
+    }
+  }
+</script>
+<script>
+  // ar panel charts
+
+  // ar time series chart
+  // marker and line
+  const arpTsChartConfig = {
+    type: 'scatter',
+    data: {
+      labels: [],
+      datasets: [],
+    },
+    options: {
+    },
+  };
+  const arpTsChart = new Chart(
+    document.getElementById('arpTsChart'),
+    arpTsChartConfig
+  );
+
+  // ar distribution chart
+  // bar and line
+  const arpDistChartConfig = {
+    type: 'scatter',
+    data: {
+      labels: [],
+      datasets: [],
+    },
+    options: {
+      scales: {
+        x: {
+          type: 'linear',
+        }
+      }
+    }
+  };
+  const arpDistChart = new Chart(
+    document.getElementById('arpDistChart'),
+    arpDistChartConfig
+  );
+
+  var arpChartData;
+  function createArpWs() {
+    return new Promise(function(resolve) {
+      resolve(new WebSocket(
+        `ws://${window.location.host}/ws/dashboard/stkrpt/ar`
+      ));
     });
   };
-  function sendInputs(ws) {
+  function sendArpInputs(ws) {
     return new Promise(function(resolve, reject) {
-      var wsInputs = {
+      let wsInputs = {
         stockCode: "{{ corp.stockCode }}",
         oc: $("input[name=oc]:checked").val(),
         arName: $("#arName").val(),
@@ -246,12 +311,12 @@
       resolve(ws);
     });
   };
-
-  function receiveData(ws) {
+  function receiveArpData(ws) {
     return new Promise(function(resolve, reject) {
       ws.onmessage = function(e) {
-        var newData = JSON.parse(e.data);
+        let newData = JSON.parse(e.data);
         if (newData !== null) {
+          arpChartData = newData.graph_data;
           resolve([ws, newData]);
         } else {
           reject(new Error("no data"));
@@ -259,93 +324,248 @@
       };
     });
   };
-
-  function dateFormatter(ts) {
-    var date = new Date(ts);
-    var strYear = date.getFullYear().toString();
-    var strMonth = (date.getMonth()+1).toString().padStart(2,'0')
-    var strDate = date.getDate().toString().padStart(2,'0')
-    return `${strYear}-${strMonth}-${strDate}`
+  function updateArpChartControl(newData) {
+    $("#arpChartControl tbody tr").remove(); // reset table
+    for (r of newData.table.reverse()) {
+      let statusText = (r.status === 'highest') ? '매우 높음': (
+        (r.status === 'higher') ? '높음': (
+          (r.status === 'high') ? '다소 높음': (
+            (r.status === 'mid') ? '중간 수준': (
+              (r.status === 'low') ? '다소 낮음': (
+                (r.status === 'lower') ? '낮음': '매우 낮음'
+              )
+            )
+          )
+        )
+      );
+      let redStatus = ['highest', 'higher'];
+      let blueStatus = ['lowest', 'lower'];
+      let txtColor = (redStatus.includes(r.status)) ? 'danger': (
+        (blueStatus.includes(r.status) ? 'primary': 'dark')
+      );
+      $("#arpChartControl tbody").append(`
+        <tr onclick="updateTimepoint(${r.fqe})">
+          <td>${dateFormatter(r.fqe)}</td>
+          <td class="fw-bold">${r.value.toFixed(4)}</td>
+          <td>${r.rank.toFixed(0)}위</td>
+          <td>${(r.pct*100).toFixed(0)}%</td>
+          <td class="text-${txtColor}">${statusText}</td>
+        </tr>
+      `)
+    }
   };
+  function updateArpChart(newData) {
+    arpTsChart.data.labels = newData.graph_data.tp_all.map(tp =>
+      dateFormatter(tp)
+    );
+    // ts path
+    arpTsChart.data.datasets.push({
+      type: 'line',
+      label: 'valLine',
+      data: newData.graph_data.ts.val,
+      borderColor: hexToRgb(defaultColors[1], 1),
+      pointRadius: 0,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'line',
+      label: 'lineAvg',
+      data: newData.graph_data.ts.avg,
+      borderColor: hexToRgb(defaultColors[0], 1),
+      pointRadius: 0,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'line',
+      label: 'lineQ1',
+      data: newData.graph_data.ts.q1,
+      borderColor: hexToRgb(defaultColors[0], .5),
+      borderDash: [2, 2],
+      pointRadius: 0,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'line',
+      label: 'lineQ2',
+      data: newData.graph_data.ts.q2,
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderDash: [4, 2],
+      pointRadius: 0,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'line',
+      label: 'lineQ3',
+      data: newData.graph_data.ts.q3,
+      borderColor: hexToRgb(defaultColors[0], .5),
+      borderDash: [2, 2],
+      pointRadius: 0,
+    });
 
-  function updateContents(ws, newData) {
+    // markers on ts path
+    let latest = dateFormatter(newData.graph_data.tp_all.at(-1));
+    arpTsChart.data.datasets.push({
+      type: 'scatter',
+      label: 'tsValMarker',
+      data: [{
+        x: latest,
+        y: newData.graph_data.ts.val.at(-1)
+      }],
+      backgroundColor: hexToRgb(defaultColors[1], 1),
+      pointStyle: 'circle',
+      radius: 7,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'scatter',
+      label: 'tsAvgMarker',
+      data: [{
+        x: latest,
+        y: newData.graph_data.ts.avg.at(-1)
+      }],
+      backgroundColor: hexToRgb(defaultColors[0], 1),
+      pointStyle: 'circle',
+      radius: 7,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'scatter',
+      label: 'tsQ1Marker',
+      data: [{
+        x: latest,
+        y: newData.graph_data.ts.q1.at(-1)
+      }],
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      backgroundColor: hexToRgb('#FF9900', .5),
+      pointStyle: 'rectRot',
+      radius: 7,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'scatter',
+      label: 'tsQ2Marker',
+      data: [{
+        x: latest,
+        y: newData.graph_data.ts.q2.at(-1)
+      }],
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      backgroundColor: hexToRgb(defaultColors[0], .5),
+      pointStyle: 'rect',
+      radius: 7,
+    });
+    arpTsChart.data.datasets.push({
+      type: 'scatter',
+      label: 'tsQ3Marker',
+      data: [{
+        x: latest,
+        y: newData.graph_data.ts.q3.at(-1)
+      }],
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      backgroundColor: hexToRgb('#109618', .5),
+      pointStyle: 'rectRot',
+      radius: 7,
+    });
+    arpTsChart.update();
+
+    // dist
+    arpDistChart.data.labels = newData.graph_data.dist.bins;
+
+    // prob mass
+    arpDistChart.data.datasets.push({
+      type: 'bar',
+      label: 'pm',
+      data: newData.graph_data.dist.pm.at(-1),
+      backgroundColor: hexToRgb(defaultColors[0], .5)
+    });
+
+    // normalized kde
+    arpDistChart.data.datasets.push({
+      type: 'line',
+      label: 'kde',
+      data: newData.graph_data.dist.kde.at(-1),
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      pointRadius: 0,
+    });
+
+    // markers on x axis
+    arpDistChart.data.datasets.push({
+      type: 'scatter',
+      label: 'distValMarker',
+      data: [{
+        x: newData.graph_data.ts.val.at(-1),
+        y: 0
+      }],
+      backgroundColor: hexToRgb(defaultColors[1], 1),
+      pointStyle: 'circle',
+      radius: 7,
+    });
+    arpDistChart.data.datasets.push({
+      type: 'scatter',
+      label: 'distAvgMarker',
+      data: [{
+        x: newData.graph_data.ts.avg.at(-1),
+        y: 0
+      }],
+      backgroundColor: hexToRgb(defaultColors[0], 1),
+      pointStyle: 'circle',
+      radius: 7,
+    });
+    arpDistChart.data.datasets.push({
+      type: 'scatter',
+      label: 'distQ1Marker',
+      data: [{
+        x: newData.graph_data.ts.q1.at(-1),
+        y: 0
+      }],
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      backgroundColor: hexToRgb('#FF9900', .5),
+      pointStyle: 'rectRot',
+      radius: 7,
+    });
+    arpDistChart.data.datasets.push({
+      type: 'scatter',
+      label: 'distQ2Marker',
+      data: [{
+        x: newData.graph_data.ts.q2.at(-1),
+        y: 0
+      }],
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      backgroundColor: hexToRgb(defaultColors[0], .5),
+      pointStyle: 'rect',
+      radius: 7,
+    });
+    arpDistChart.data.datasets.push({
+      type: 'scatter',
+      label: 'distQ3Marker',
+      data: [{
+        x: newData.graph_data.ts.q3.at(-1),
+        y: 0
+      }],
+      borderColor: hexToRgb(defaultColors[0], 1),
+      borderWidth: 3,
+      backgroundColor: hexToRgb('#109618', .5),
+      pointStyle: 'rectRot',
+      radius: 7,
+    });
+
+    arpDistChart.update();
+  };
+  function updateArpContents(ws, newData) {
     return new Promise(function(resolve, reject) {
       ws.close();
-      // update plot
-      var alphaAll = [95, 99, 100];
-      for (alpha of alphaAll) {
-        var jsonFig = JSON.parse(newData.figures[`pct${alpha}`]);
-        jsonFig.layout.autosize = false;
-        jsonFig.layout.dragmode = 'pan',
-        jsonFig.layout.height = 700;
-        jsonFig.layout.margin = {
-          l: 0,
-          r: 0,
-          b: 0,
-          t: 0,
-        };
-        jsonFig.config = {
-          displayModeBar: false,
-          scrollZoom: true,
-        };
-        Plotly.newPlot(`arp${alpha}plot`, jsonFig);
-      };
-
-      // update table
-      var jsonTable = JSON.parse(newData.table)
-      $("#arpTable tbody tr").remove(); // reset table
-      var tBody = $("#arpTable tbody")[0];
-      for (r of jsonTable) {
-        row = tBody.insertRow();
-        if (r.status === 'highest') {
-          row.classList.add('table-danger');
-          var statusText = '매우 높음';
-        } else if (r.status === 'higher') {
-          row.classList.add('table-warning');
-          var statusText = '높음';
-        } else if (r.status === 'high') {
-          row.classList.add('table-success');
-          var statusText = '다소 높음';
-        } else if (r.status === 'mid') {
-          row.classList.add('table-success');
-          var statusText = '중간 수준';
-        } else if (r.status === 'low') {
-          row.classList.add('table-success');
-          var statusText = '다소 낮음';
-        } else if (r.status === 'lower') {
-          row.classList.add('table-warning');
-          var statusText = '낮음';
-        } else if (r.status === 'lowest') {
-          row.classList.add('table-danger');
-          var statusText = '매우 낮음';
-        };
-        cell = row.insertCell();
-        cell.textContent = dateFormatter(r.fqe);
-        cell = row.insertCell();
-        cell.textContent = r.value.toFixed(4);
-        cell = row.insertCell();
-        cell.textContent = r.rank.toFixed(0);
-        cell = row.insertCell();
-        cell.textContent = (r.pct*100).toFixed(2);
-        cell = row.insertCell();
-        cell.textContent = statusText;
-      }
-      resolve('success');
+      updateArpChartControl(newData);
+      updateArpChart(newData);
+      resolve();
     });
   };
-
-  function activateSpinner() {
+  function activateArpSpinner() {
     $('.overlay').each(function(i, overlay) {
-      // overlay.style.visibility = 'visible'
       overlay.style.display = 'block';
     });
     $('.spanner').each(function(i, spinner) {
-      // spinner.style.visibility = 'visible'
       spinner.style.display = 'block';
     });
   };
-
-  function deactivateSpinner() {
+  function deactivateArpSpinner() {
     $('.overlay').each(function(i, overlay) {
       overlay.style.display = 'none';
     });
@@ -353,77 +573,147 @@
       spinner.style.display = 'none';
     });
   };
-
-  function viewSuccess(success) {
+  function viewArpSuccess() {
     $('#arpSuccess')[0].style.display = 'block';
     $('#arpFailed')[0].style.display = 'none';
-    deactivateSpinner();
+    deactivateArpSpinner();
   };
-
-  function viewFailed(fail) {
+  function viewArpFail(fail) {
     $('#arpSuccess')[0].style.display = 'none';
     $('#arpFailed')[0].style.display = 'block';
-    deactivateSpinner();
+    deactivateArpSpinner();
   };
-
-  function updateAr() {
-    activateSpinner();
-    createWs()
-      .then(ws => sendInputs(ws))
-      .then(ws => receiveData(ws))
-      .then(([ws, newData]) => updateContents(ws, newData))
-      .then(success => viewSuccess(success))
+  function updateArp() {
+    arpTsChart.data.labels = [];
+    arpTsChart.data.datasets = [];
+    arpDistChart.data.labels = [];
+    arpDistChart.data.datasets = [];
+    activateArpSpinner();
+    let newData = createArpWs()
+      .then(ws => sendArpInputs(ws))
+      .then(ws => receiveArpData(ws))
+      .then(([ws, newData]) => updateArpContents(ws, newData))
+      .then(() => viewArpSuccess())
       .catch(function(err) {
-        viewFailed();
+        viewArpFail();
       });
   };
-
   $(document).ready(function() {
-    updateAr();
-  })
+    updateArp();
+  });
+
+  function updateArpTsChartByTimepoint(tp, markerId, markerLabel) {
+    const tsMarkerMap = [
+      {label: 'tsValMarker', id: 'val'},
+      {label: 'tsAvgMarker', id: 'avg'},
+      {label: 'tsQ1Marker', id: 'q1'},
+      {label: 'tsQ2Marker', id: 'q2'},
+      {label: 'tsQ3Marker', id: 'q3'},
+    ];
+    let loc = arpChartData.tp_all.indexOf(tp);
+    for (tmm of tsMarkerMap) {
+      let ds = arpTsChart.data.datasets.find(ds =>
+        ds.label === tmm.label
+      );
+      let newMarker = {
+        x: dateFormatter(tp),
+        y: arpChartData.ts[tmm.id].at(loc)
+      };
+      ds.data = [newMarker];
+    }
+  };
+  function updateArpDistChartByTimepoint(tp) {
+    const distMarkerMap = [
+      {label: 'distValMarker', id: 'val'},
+      {label: 'distAvgMarker', id: 'avg'},
+      {label: 'distQ1Marker', id: 'q1'},
+      {label: 'distQ2Marker', id: 'q2'},
+      {label: 'distQ3Marker', id: 'q3'},
+    ];
+    let loc = arpChartData.tp_all.indexOf(tp);
+    let dspm = arpDistChart.data.datasets.find(ds => ds.label === 'pm');
+    let dskde = arpDistChart.data.datasets.find(ds => ds.label === 'kde');
+    dspm.data = arpChartData.dist.pm.at(loc);
+    dskde.data = arpChartData.dist.kde.at(loc);
+    for (dmm of distMarkerMap) {
+      let ds = arpDistChart.data.datasets.find(ds =>
+        ds.label === dmm.label
+      );
+      let newMarker = {
+        x: arpChartData.ts[dmm.id].at(loc),
+        y: 0
+      };
+      ds.data = [newMarker];
+    }
+  };
+  function updateTimepoint(tp) {
+    console.log($('#arpChartControl tbody'))
+    updateArpTsChartByTimepoint(tp, 'val', 'valMarker');
+    updateArpTsChartByTimepoint(tp, 'avg', 'avgMarker');
+    updateArpTsChartByTimepoint(tp, 'q1', 'q1Marker');
+    updateArpTsChartByTimepoint(tp, 'q2', 'q2Marker');
+    updateArpTsChartByTimepoint(tp, 'q3', 'q3Marker');
+    updateArpDistChartByTimepoint(tp);
+    arpTsChart.update();
+    arpDistChart.update();
+  };
+
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  // fa chart
   // create fa chart
   const faChartConfig = {
     type: 'scatter',
     data: {
-      labels: null,
-      datasets: null,
+      labels: [],
+      datasets: [],
     },
     options: {
+      responsive: true,
       scales: {
         "yl": {
           type: 'logarithmic',
           display: true,
           positon: 'left',
           title: {
-            text: '값',
+            text: '값 (KRW)',
             display: true,
           },
+          ticks: {
+            callback: function(value) {
+              if (value > 999 && value < 1e6) {
+                return (value/1e3).toFixed(0) + 'K'
+              } else if (value >= 1e6 && value < 1e9) {
+                return (value/1e6).toFixed(0) + 'M'
+              } else if (value >= 1e9 && value <1e12) {
+                return (value/1e9).toFixed(0) + 'B'
+              } else if (value >= 1e12) {
+                return (value/1e12).toFixed(0) + 'T'
+              }
+            }
+          }
         },
         "yr": {
           type: 'linear',
           display: true,
           position: 'right',
           title: {
-            text: '변동율',
+            text: '변동율 (%)',
             display: true,
           },
           grid: {
             drawOnChartArea: false,
           },
         }
-      }
+      },
     }
   };
   const faChart = new Chart(
-    document.getElementById('faChart'),
+    document.getElementById('faChart').getContext('2d'),
     faChartConfig
   );
-</script>
-<script>
+
   // faSearch
   function activateFaSearch() {
     return new Promise(function(resolve) {
@@ -495,7 +785,7 @@
         for (f of fltrd) {
           var resId = `faFiltered-${f.ft_div.toLowerCase()}`;
           $(`#${resId}`).append(`
-            <span class="badge rounded-pill bg-secondary" type="button" onclick="queryFaData('${stockCode}', '${f.oc}', '${f.nm}')">
+            <span class="badge rounded-pill bg-secondary" type="button" onclick="queryFaData('${stockCode}', '${f.oc}', '${f.nm}', '${f.lk}')">
               ${f.lk}
             </span>
           `)
@@ -513,7 +803,7 @@
           `)
         } else {
           $('#faMatched').append(`
-            <span class="badge rounded-pill bg-success" type="button" onclick="queryFaData('${stockCode}', '${matched.oc}', '${matched.nm}')">
+            <span class="badge rounded-pill bg-success" type="button" onclick="queryFaData('${stockCode}', '${matched.oc}', '${matched.nm}', '${matched.lk}')">
               ${matched.lk}
             </span>
           `)
@@ -525,14 +815,17 @@
     activateFaSearch()
     .then(faAll => findResult(faAll))
   };
-  function addFaRow(rowId) {
+
+  // websocket
+  function addFaChartControl(oc, faName, lk) {
+    let rowId = `faChartControlRow-${oc}-${faName}`
+    let ocLk = (oc === 'CFS') ? '연결':'별도';
     return new Promise(function(resolve) {
-      console.log('add fa row')
-      $('#faControl tbody').append(`
+      $('#faChartControl tbody').append(`
       <tr id=${rowId}>
         <th scope="row"><button class="btn btn-close remove-fa-row"></button></th>
-        <td class="fa-oc">-</td>
-        <td class="fa-lk">-</td>
+        <td class="fa-oc">${ocLk}</td>
+        <td class="fa-lk">${lk}</td>
         <td class="fa-path">-</td>
         <td class="fa-status">
           <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
@@ -541,23 +834,26 @@
         <td class="fa-chart-growth-handler">-</td>
       </tr>
       `);
-      resolve(true) // resolve dummy for promise chaining
+      resolve(); // resolve dummy for promise chaining
     });
   };
-
-  // websocket
-  function createFaWs(faName) {
+  function createFaWs() {
     return new Promise(function(resolve) {
+      // resolve(
+      //   new WebSocket(
+      //     `ws://${window.location.host}/ws/dashboard/stkrpt/fa/${faName}/${stockCode}`
+      //   )
+      // );
       resolve(
         new WebSocket(
-          `ws://${window.location.host}/ws/dashboard/stkrpt/fa/${faName}/${stockCode}`
+          `ws://${window.location.host}/ws/dashboard/stkrpt/fa`
         )
       );
+
     });
   };
-  function sendFaInputs(ws, stockCode, oc, faName) {
+  function sendFaChartInputs(ws, stockCode, oc, faName) {
     return new Promise(function(resolve) {
-      console.log('send inputs');
       ws.onopen = function() {
         ws.send(JSON.stringify({
           stockCode: stockCode,
@@ -568,83 +864,126 @@
       resolve(ws);
     })
   };
-  function receiveFaData(ws) {
+  function receiveFaChartData(ws) {
     return new Promise(function(resolve, reject) {
       ws.onmessage = function(e) {
         var newData = JSON.parse(e.data);
         if (newData !== null) {
           resolve([ws, newData]);
         } else {
-          reject(new Error("no data"))
+          ws.close();
+          reject(new Error("no data"));
         };
       };
     });
   };
 
   // update contents
-  function updateFaControl(newData, rowId) {
+  function parseFaChartData(newData) {
+    let xTimeStamp = JSON.parse(newData.graph_data.x);
+    return {
+      value: JSON.parse(newData.graph_data.y_value),
+      growth: JSON.parse(newData.graph_data.y_growth),
+      x: xTimeStamp.map(tp => dateFormatter(tp))
+    };
+  };
+  function updateFaX(newData) {
+    return new Promise(function(resolve) {
+      let oldX = faChart.data.labels;
+      let newX = parseFaChartData(newData).x;
+      if (oldX.length === 0) {
+        faChart.data.labels = newX;
+      } else if (newX.length > oldX.length) {
+        for (dt of newX) {
+          for (ds of faChart.data.datsets) {
+            newY = []
+            for (y of ds.data) {
+              let loc = oldX.indexOf(dt);
+              if (loc === -1) {
+                newY.push(null);
+              } else {
+                newY.push(y);
+              };
+            };
+          };
+        };
+        faChart.data.labels = newX;
+      };
+      resolve(newData);
+    })
+  };
+  function updateFaY(newData) {
+    return new Promise(function(resolve) {
+      let newFaChartData = parseFaChartData(newData);
+      let newValue = [];
+      let newGrowth = [];
+      for (dt of faChart.data.labels) {
+        let loc = newFaChartData.x.indexOf(dt);
+        if (loc === -1) {
+          newValue.push(null);
+          newGrowth.push(null);
+        } else {
+          newValue.push(newFaChartData.value[loc]);
+          newGrowth.push(newFaChartData.growth[loc]);
+        };
+      };
+
+      let ocLk = (newData.fa_info.oc === 'CFS') ? '연결':'별도';
+      let valLabel = `${newData.fa_info.lk} (${ocLk})`;
+      let growthLabel = `${newData.fa_info.lk} 변동율 (${ocLk})`;
+      let dcolor = defaultColors[faChart.data.datasets.length / 2]
+      faChart.data.datasets.push({
+        type: 'line',
+        label: valLabel,
+        data: newValue,
+        borderColor: dcolor,
+        yAxisID: 'yl',
+      });
+      faChart.data.datasets.push({
+        type: 'bar',
+        label: growthLabel,
+        data: newGrowth,
+        backgroundColor: hexToRgb(dcolor, .5),
+        borderColor: hexToRgb(dcolor, .5),
+        yAxisID: 'yr',
+      });
+      faChart.update();
+      resolve(newData);
+    });
+  };
+  function updateFaChartControl(newData) {
+    let rowId = `faChartControlRow-${newData.fa_info.oc}-${newData.fa_info.nm}`
     let row = $(`#${rowId}`);
     let ocLk = ((newData.fa_info.oc === 'CFS') ? '연결':'별도');
-    row.find('.fa-oc').html(ocLk);
-    row.find('.fa-lk').html(newData.fa_info.lk)
+    let valLabel = `${newData.fa_info.lk} (${ocLk})`;
+    let growthLabel = `${newData.fa_info.lk} 변동율 (${ocLk})`;
+
+    // row.find('.fa-oc').html(ocLk);
+    // row.find('.fa-lk').html(newData.fa_info.lk)
     row.find('.fa-path').html(newData.fa_info.path)
     row.find('.fa-status').html('전시 중')
     row.find('.fa-status').addClass('text-success')
     row.find('.fa-chart-value-handler').empty().append(`
-    <div class="form-check form-switch">
-      <input type="checkbox" class="form-check-input" checked>
-    </div>
+      <div class="form-check form-switch">
+        <input type="checkbox" class="form-check-input" data-control="${valLabel}" checked>
+      </div>
     `);
     row.find('.fa-chart-growth-handler').empty().append(`
-    <div class="form-check form-switch">
-      <input type="checkbox" class="form-check-input" checked>
-    </div>
+      <div class="form-check form-switch">
+        <input type="checkbox" class="form-check-input" data-control="${growthLabel}" checked>
+      </div>
     `);
-  }
-  function updateFaChart(newData) {
-    let yValue = JSON.parse(newData.graph_data.y_value);
-    let yGrowth = JSON.parse(newData.graph_data.y_growth);
-    let x = JSON.parse(newData.graph_data.x);
-    let controlRow = $(`#faControlRow-${newData.fa_info.oc}-${newData.fa_info.nm}`)
-    faChart.data.labels = x.map(tp => dateFormatter(tp));
-    let ocLk = (newData.fa_info.oc === 'CFS') ? '연결':'별도';
-    let valLabel = `${newData.fa_info.lk} (${ocLk})`;
-    let growthLabel = `${newData.fa_info.lk} 변동 (${ocLk})`;
-    faChart.data.datasets.push({
-      type: 'line',
-      label: valLabel,
-      data: yValue,
-      yAxisID: 'yl',
-    });
-    controlRow.find('.fa-chart-value-handler input').attr(
-      'data-control',
-      valLabel
-    );
-    faChart.data.datasets.push({
-      type: 'bar',
-      label: growthLabel,
-      data: yGrowth,
-      yAxisID: 'yr',
-    });
-    controlRow.find('.fa-chart-growth-handler input').attr(
-      'data-control',
-      growthLabel
-    )
-    faChart.update();
   };
-  function updateFaContents(ws, newData, rowId) {
+  function updateFaContents(ws, newData) {
     return new Promise(function(resolve) {
-      // close websocket
       ws.close();
-      // update fa control
-      updateFaControl(newData, rowId);
-      // update chart
-      updateFaChart(newData);
-
-      resolve(true) // resolve dummy for chaining
-    })
-  };
-  function activateFaChartHandler() {
+      updateFaChartControl(newData);
+      updateFaX(newData)
+      .then(newData => updateFaY(newData));
+      resolve();
+    });
+  }
+  function activateFaChartControl() {
     $('.fa-chart-value-handler input').change(function() {
       let dataLabel = $(this).attr('data-control')
       let data = faChart.data.datasets.find(x => x.label === dataLabel)
@@ -672,26 +1011,41 @@
         faChart.data.datasets = faChart.data.datasets.filter(x =>
           x.label != dataLabel
         );
+        if (faChart.data.datasets.length === 0) {
+          faChart.data.labels = [];
+        };
         faChart.update();
       });
       row.remove();
-    })
-  }
-  function queryFaData(stockCode, oc, faName) {
+    });
+  };
+
+  function queryFaData(stockCode, oc, faName, lk) {
     deactivateFaSearch();
-    let rowId = `faControlRow-${oc}-${faName}`
-    addFaRow(rowId)
-    .then(dummy => createFaWs(faName))
-    .then(ws => sendFaInputs(ws, stockCode, oc, faName))
-    .then(ws => receiveFaData(ws))
-    .then(([ws, newData]) => updateFaContents(ws, newData, rowId))
-    .then(dummy => activateFaChartHandler())
+    addFaChartControl(oc, faName, lk);
+    createFaWs()
+    .then(ws => sendFaChartInputs(ws, stockCode, oc, faName))
+    .then(ws => receiveFaChartData(ws))
+    .then(([ws, newData]) => updateFaContents(ws, newData))
+    .then(dummy => activateFaChartControl())
+    .catch(function(error) {
+      let row = $(`#faChartControlRow-${oc}-${faName}`);
+      row.find('.fa-status').html('데이터 없음');
+      row.find('.fa-status').addClass('text-danger');
+      row.find('.btn-close').on('click', function() {
+        row.remove();
+      })
+    });
   };
 
   $(document).ready(async function() {
-    for (faName of ['Assets', 'Equity', 'Liabilities']) {
-      console.log(faName)
-      queryFaData(stockCode, 'CFS', faName)
+    presets = [{
+      name: 'Equity', lk: '자본총계'
+    }, {
+      name: 'ProfitLoss', lk: '당기순이익(손실)'
+    }]
+    for (fa of presets) {
+      queryFaData(stockCode, 'CFS', fa.name, fa.lk)
     }
   });
 

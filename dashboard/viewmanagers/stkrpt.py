@@ -56,9 +56,9 @@ class StkrptViewManager:
             )
             lb, ub = s.quantile([.025, .975])
             panel_avg = s.loc[(s>=lb)&(s<=ub)].mean()
-            larv.pdev = (larv.value / panel_avg -1) * 100
+            larv.pdev = larv.value / panel_avg
             ts_avg = arts.aggregate(ts_avg=Avg('value'))['ts_avg']
-            larv.tdev = (larv.value / ts_avg -1) * 100
+            larv.tdev = larv.value / ts_avg
 
             if len(arts) == 1:
                 larv_all.append(larv)
@@ -66,7 +66,7 @@ class StkrptViewManager:
 
             larv_q1 = list(arts)[-2]
             if larv.fqe - larv_q1.fqe <= datetime.timedelta(days=95):
-                larv.tdev_q1 = (larv.value / larv_q1.value - 1) * 100
+                larv.tdev_q1 = larv.value / larv_q1.value
             else:
                 larv.tdev_q1 = None
 
@@ -76,7 +76,7 @@ class StkrptViewManager:
 
             fqe_y1 = f"{larv.fqe.year-1}-{str(larv.fqe.month).zfill(2)}-{str(larv.fqe.day).zfill(2)}"
             larv_y1 = arts.filter(fqe=fqe_y1).first()
-            larv.tdev_y1 = (larv.value / larv_y1.value - 1) * 100
+            larv.tdev_y1 = larv.value / larv_y1.value
             larv_all.append(larv)
 
         return {
