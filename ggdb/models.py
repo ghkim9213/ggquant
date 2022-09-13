@@ -154,6 +154,9 @@ class OpendartFile(models.Model):
                     # collect data
                     header = next(ff)
                     header = header.decode('cp949').split('\t')
+                    print('---')
+                    print(self.by, self.bq, self.type, ffnm)
+                    print(header)
                     clean_header = {i:HEADER_TGT[h] for i, h in enumerate(header) if h in HEADER_TGT.keys()}
                     get_clean_row = lambda row: [x for i, x in enumerate(row.decode('cp949').split('\t')) if i in clean_header.keys()]
                     corp_all = Corp.objects.all()
@@ -240,7 +243,7 @@ class Fs(models.Model):
         db_table = 'fs'
         get_latest_by = 'fqe'
         indexes = [
-            models.Index(fields=['corp','type','by','bq']),
+            models.Index(fields=['corp','type','fqe']),
         ]
 
 
@@ -445,18 +448,18 @@ class AccountRatio(models.Model):
         strfunc = f"lambda {strargs}:" + self.syntax.replace("`","")
         return eval(strfunc)
 
-    def inspect_latest_all(self, oc, mkt):
-        arv_all = (
-            self.values.select_related('corp')
-            .filter(method=oc, corp__market=mkt, corp__delistedAt__isnull=True)
-        )
-        if arv_all.exists():
-            df = pd.DataFrame.from_records(arv_all.values())
-            df = df.sort_values(['corp_id','by','bq'], ascending=[True,False,False])
-            latest_id_all = df.drop_duplicates('corp_id').id.tolist()
-            return self.values.filter(id__in=latest_id_all)
-        else:
-            raise ValueError(f"{oc}_{mkt} has no attribute of {self.name}.")
+    # def inspect_latest_all(self, oc, mkt):
+    #     arv_all = (
+    #         self.values.select_related('corp')
+    #         .filter(method=oc, corp__market=mkt, corp__delistedAt__isnull=True)
+    #     )
+    #     if arv_all.exists():
+    #         df = pd.DataFrame.from_records(arv_all.values())
+    #         df = df.sort_values(['corp_id','by','bq'], ascending=[True,False,False])
+    #         latest_id_all = df.drop_duplicates('corp_id').id.tolist()
+    #         return self.values.filter(id__in=latest_id_all)
+    #     else:
+    #         raise ValueError(f"{oc}_{mkt} has no attribute of {self.name}.")
 
     def get_panel(self, oc, mkt):
         if len(self.arg_all) > 1:

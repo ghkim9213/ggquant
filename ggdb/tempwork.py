@@ -1,13 +1,10 @@
-from .tasks import *
+from dashboard.batchtools.fa_cs import *
 
-arm = AccountRatioManager()
-arm.update_values()
+import datetime
+import time
 
-# comb2arv, new_arv_all = arm.update_values()
-# # new
-#
-# from .models import *
-#
-# ar = AccountRatio.objects.get(name='CurrentRatio')
-#
-# panel = ar.get_panel('CFS','KOSPI')
+facsm = FaCrossSectionManager()
+# sample
+
+facsm.today = datetime.datetime.strptime('2022-09-09', '%Y-%m-%d')
+facsm.update()

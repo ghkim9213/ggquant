@@ -1,5 +1,6 @@
 from .batchtools.account_ratio import *
 from .batchtools.corp import *
+from .batchtools.fa_cs import *
 from .batchtools.fs import *
 # from .batchtools.temp import *
 
@@ -30,7 +31,10 @@ def batchs():
 
         arm = AccountRatioManager()
         arm.update()
-        arm.update_values()
+        # arm.update_values()
+
+        facsm = FaCrossSectionManager()
+        facsm.update()
         # arm.update_latest_values()
 
         # larm = LatestAccountRatioManager()
