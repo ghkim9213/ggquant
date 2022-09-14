@@ -41,9 +41,10 @@ class FaTimeSeries:
             .filter(**fltr)
             .select_related('fs','fs__type')
         )
-        ft_div = qs.first().fs.type.type
         if not qs.exists():
-            raise KeyError('no data')
+            return pd.DataFrame()
+
+        ft_div = qs.first().fs.type.type
 
         # clean data
         df = pd.DataFrame.from_records(qs.values(*FIELDS.keys())).rename(columns=FIELDS)
@@ -65,7 +66,7 @@ class FaTimeSeries:
         del df['ft_order']
 
         if ft_div == 'BS':
-            return df[['fqe', 'value']]
+            return df.sort_values('fqe')[['fqe', 'value']]
         else:
             # fix by bq
             df = df.sort_values('fqe')
@@ -125,9 +126,9 @@ class FaCrossSection(models.Model):
         ft_div = self.source.first().fs.type.type
         df = pd.DataFrame.from_records(self.source.values(*FIELDS.keys())).rename(columns=FIELDS)
         df.fqe = pd.to_datetime(df.fqe)
-        if ft_div == 'BS':
-            return df[['stock_code', 'corp_name', 'fqe', 'value']]
-        else:
+        # if ft_div == 'BS':
+        #     return df[['stock_code', 'corp_name', 'fqe', 'value']]
+        if ft_div != 'BS':
             df = df.sort_values(['stock_code','fqe'])
             mgap = df.fqe.dt.month - df.fye
             ydiff =  -((mgap <= 0) & (df.fye != 12)).astype(int)
@@ -148,10 +149,9 @@ class FaCrossSection(models.Model):
             dfq = dfq.stack().rename('value').to_frame()
             dfq['fqe'] = [idx2fqe[idx] for idx in dfq.index]
             df = dfq.reset_index()[['stock_code','corp_name','fqe','value']]
-            df = df.sort_values(
-                ['stock_code','fqe'],
-                ascending = [True, False]
-            ).drop_duplicates('stock_code')
-            print(self.tp)
-            valid = self.tp - df.fqe.dt.date <= '62 days'
-            return df.loc[valid].reset_index(drop=True)
+        df = df.sort_values(
+            ['stock_code','fqe'],
+            ascending = [True, False]
+        ).drop_duplicates('stock_code')
+        valid = self.tp - df.fqe.dt.date <= '62 days'
+        return df.loc[valid].reset_index(drop=True)

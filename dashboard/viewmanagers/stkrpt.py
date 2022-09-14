@@ -28,59 +28,59 @@ class StkrptViewManager:
 
     def ar_viewer(self):
         ar_all = AccountRatio.objects.all()
-        larv_all = []
-        oc='CFS'
-        for ar in ar_all:
-            arts = ar.values.filter(corp=self.corp, oc=oc)
-            if not arts.exists():
-                dummy_larv = AccountRatioValue(
-                    ar = ar,
-                    corp = self.corp,
-                    fqe = None,
-                    oc = None,
-                    value = None,
-                )
-                larv_all.append(dummy_larv)
-                continue
-
-            larv = arts.latest()
-            if not larv.value:
-                larv.fqe = None
-                larv_all.append(larv)
-                continue
-
-            s = pd.Series(
-                ar.values
-                .filter(corp__market=self.corp.market, oc=oc)
-                .values_list('value', flat=True)
-            )
-            lb, ub = s.quantile([.025, .975])
-            panel_avg = s.loc[(s>=lb)&(s<=ub)].mean()
-            larv.pdev = larv.value / panel_avg
-            ts_avg = arts.aggregate(ts_avg=Avg('value'))['ts_avg']
-            larv.tdev = larv.value / ts_avg
-
-            if len(arts) == 1:
-                larv_all.append(larv)
-                continue
-
-            larv_q1 = list(arts)[-2]
-            if larv.fqe - larv_q1.fqe <= datetime.timedelta(days=95):
-                larv.tdev_q1 = larv.value / larv_q1.value
-            else:
-                larv.tdev_q1 = None
-
-            if len(arts) < 5:
-                larv_all.append(larv)
-                continue
-
-            fqe_y1 = f"{larv.fqe.year-1}-{str(larv.fqe.month).zfill(2)}-{str(larv.fqe.day).zfill(2)}"
-            larv_y1 = arts.filter(fqe=fqe_y1).first()
-            larv.tdev_y1 = larv.value / larv_y1.value
-            larv_all.append(larv)
+        # larv_all = []
+        # oc='CFS'
+        # for ar in ar_all:
+        #     arts = ar.values.filter(corp=self.corp, oc=oc)
+        #     if not arts.exists():
+        #         dummy_larv = AccountRatioValue(
+        #             ar = ar,
+        #             corp = self.corp,
+        #             fqe = None,
+        #             oc = None,
+        #             value = None,
+        #         )
+        #         larv_all.append(dummy_larv)
+        #         continue
+        #
+        #     larv = arts.latest()
+        #     if not larv.value:
+        #         larv.fqe = None
+        #         larv_all.append(larv)
+        #         continue
+        #
+        #     s = pd.Series(
+        #         ar.values
+        #         .filter(corp__market=self.corp.market, oc=oc)
+        #         .values_list('value', flat=True)
+        #     )
+        #     lb, ub = s.quantile([.025, .975])
+        #     panel_avg = s.loc[(s>=lb)&(s<=ub)].mean()
+        #     larv.pdev = larv.value / panel_avg
+        #     ts_avg = arts.aggregate(ts_avg=Avg('value'))['ts_avg']
+        #     larv.tdev = larv.value / ts_avg
+        #
+        #     if len(arts) == 1:
+        #         larv_all.append(larv)
+        #         continue
+        #
+        #     larv_q1 = list(arts)[-2]
+        #     if larv.fqe - larv_q1.fqe <= datetime.timedelta(days=95):
+        #         larv.tdev_q1 = larv.value / larv_q1.value
+        #     else:
+        #         larv.tdev_q1 = None
+        #
+        #     if len(arts) < 5:
+        #         larv_all.append(larv)
+        #         continue
+        #
+        #     fqe_y1 = f"{larv.fqe.year-1}-{str(larv.fqe.month).zfill(2)}-{str(larv.fqe.day).zfill(2)}"
+        #     larv_y1 = arts.filter(fqe=fqe_y1).first()
+        #     larv.tdev_y1 = larv.value / larv_y1.value
+        #     larv_all.append(larv)
 
         return {
-            'larv_all': larv_all,
+            # 'larv_all': larv_all,
             'select_form': {
                 'oc_choices': ['CFS', 'OFS'],
                 'ar_choices': self.ar_all,

@@ -99,14 +99,21 @@
         </tbody>
       </table>
       <caption>
-        <p class="form-text mb-1">* 위 테이블은 OPEN DART에 제출된 {{ corp.corpName }}의 연결재무제표로부터 산출된 재무비율의 현황을 나타냅니다.</p>
-        <p class="form-text mb-1">* 평년 대비: 해당 재무비율에 대한 {{ corp.corpName }}의 전기간 평균 대비 기준일 값의 비율을 나타냅니다. 예를 들어, 해당 종목의 전기간 평균이 1이고 기준일 값이 1.1이라면 '1.1배'를, 0.9이라면 '0.9배'를 표시합니다.</p>
-        <p class="form-text mb-1">* 시장 평균 대비: 해당 재무비율에 대한 {{ corp.market }} 전기간 (95% 절삭) 평균 대비 {{ corp.corpName }} 기준일 값의 비율을 나타냅니다. 예를 들어, {{ corp.market }} 상장사의 재무비율 전기간 평균이 1이고 해당 종목의 기준일 값이 1.1이라면 '1.1배'를, 0.9라면 '0.9배'를 표시합니다.</p>
+        <p class="form-text mb-1">* OPEN DART에 제출된 {{ corp.corpName }}의 연결재무제표로부터 산출된 재무비율의 현황을 나타냅니다.</p>
+        <p class="form-text mb-1">* 재무비율 및 재무비율 관련 지표는 다음 사유로 결측될 수 있습니다: <a href="#">결측 사유 보러가기</a>.</p>
+        <p class="form-text mb-1">
+          * 전기 대비, 전년 동기 대비, 평년 대비, 시장 평균 대비 항목은 비교 대상과 해당 종목의 기준일 값 사이의 비율을 나타냅니다.
+          비교 대상의 값이 1이고 해당 종목의 기준일 값이 1.1이라면 '1.1배'를 표시하며 '10% 증가' 혹은 '+10% 편차'와 동일한 의미를 가집니다. 반대로 0.9라면 '0.9배'를 표시하며 '10% 감소' 혹은 '-10% 편차'와 동일한 의미를 가집니다.
+        </p>
+        <p class="form-text mb-1">* 전기 대비 =  (기준일 값) / (직전 분기 값)</p>
+        <p class="form-text mb-1">* 전년 동기 대비 = (기준일 값) / (직전 회계년도 동일 분기 값)</p>
+        <p class="form-text mb-1">* 평년 대비 = (기준일 값) / (해당종목 전기간 평균값)</p>
+        <p class="form-text mb-1">* 시장 평균 대비 = (기준일 값) / ({{ corp.market }} 전종목 전기간 평균값)</p>
       </caption>
     </div>
   </div>
   <div class="mb-5" id="arPanel">
-    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 변동 및 분포</h5>
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율별 변동 및 시점별 분포</h5>
     <p class="text-lead text-muted fs-5">{{ corp.corpName }}의 분기별 재무비율 변동 및 각 시점별 {{ corp.market }} 상장사의 재무비율 분포 정보를 조회합니다.</p>
     <!-- select chart -->
     <div id="selectAr">
@@ -117,7 +124,7 @@
           <div class="form-control d-flex justify-content-center" aria-describedby="tsMethod-addon">
             {% for oc in ar_viewer.select_form.oc_choices %}
             <div class="form-check form-check-inline">
-              <input type="radio" class="form-check-input" onclick="updateArp()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
+              <input type="radio" class="form-check-input" onclick="updateArpStatic()" name="oc" value="{{ oc }}" {% if forloop.first %}checked{% endif %}>
               <label for="{{ oc }}" class="form-check-label" >{% if oc == 'CFS' %}연결{% else %}별도{% endif %}</label>
             </div>
             {% endfor %}
@@ -126,7 +133,7 @@
         <!-- select ar -->
         <div class="input-group mb-3">
           <span class="input-group-text" id="arName-addon">재무비율 선택</span>
-          <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateArp()">
+          <select name="arName" id="arName" class="form-select" aria-describedby="arName-addon" onchange="updateArpStatic()">
             {% for ar in ar_viewer.select_form.ar_choices %}
             <option class="text-center" value="{{ ar.name }}" {% if ar.name == 'ReturnOnEquity' %}selected{% endif %}>{{ ar.labelKor }}</option>
             {% endfor %}
@@ -161,11 +168,11 @@
               <table class="table table-hover text-nowrap" id="arpChartControl">
                 <thead class="fix-header">
                   <tr>
-                    <th>날짜</th>
-                    <th>값</th>
-                    <th>순위</th>
-                    <th>백분위</th>
-                    <th>평가</th>
+                    <th style="width: 20%">날짜</th>
+                    <th style="width: 20%">값</th>
+                    <th style="width: 15%">순위</th>
+                    <th style="width: 20%;">백분위</th>
+                    <th style="width: 25%;">평가</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -180,7 +187,7 @@
     </div>
   </div>
   <div class="mb-5" id="singleFaViewer">
-    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무계정별 조회</h5>
+    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무계정별 변동</h5>
     <div>
       <table class="table table-hover" id="faChartControl">
         <caption id="faSearchResult">
@@ -233,11 +240,6 @@
     var strDate = date.getDate().toString().padStart(2,'0')
     return `${strYear}-${strMonth}-${strDate}`
   };
-  const defaultColors = [
-    '#457CA2', "#DC3912", "#FF9900", "#109618", "#990099", "#3B3EAC", "#0099C6",
-    "#DD4477", "#66AA00", "#B82E2E", "#316395", "#994499", "#22AA99", "#AAAA11",
-    "#6633CC", "#E67300", "#8B0707", "#329262", "#5574A6", "#651067"
-  ];
   function hexToRgb(hex, alpha) {
     let r = parseInt(hex.slice(1, 3), 16),
       g = parseInt(hex.slice(3, 5), 16),
@@ -252,6 +254,7 @@
 </script>
 <script>
   // ar panel charts
+  const arpChartColors = ['#457CA2', "#DC3912", "#FF9900", "#109618"]
 
   // ar time series chart
   // marker and line
@@ -262,6 +265,15 @@
       datasets: [],
     },
     options: {
+      plugins: {
+        legend: {
+          labels: {
+            filter: function(item, data) {
+              return !item.text.includes('Line')
+            }
+          }
+        }
+      }
     },
   };
   const arpTsChart = new Chart(
@@ -279,10 +291,28 @@
     },
     options: {
       scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          grid: {
+            drawOnChartArea: false,
+          },
+        },
         x: {
           type: 'linear',
         }
-      }
+      },
+      plugins: {
+        legend: {
+          display: false,
+        }
+      },
     }
   };
   const arpDistChart = new Chart(
@@ -290,279 +320,111 @@
     arpDistChartConfig
   );
 
-  var arpChartData;
-  function createArpWs() {
-    return new Promise(function(resolve) {
-      resolve(new WebSocket(
-        `ws://${window.location.host}/ws/dashboard/stkrpt/ar`
-      ));
-    });
-  };
-  function sendArpInputs(ws) {
-    return new Promise(function(resolve, reject) {
-      let wsInputs = {
-        stockCode: "{{ corp.stockCode }}",
-        oc: $("input[name=oc]:checked").val(),
-        arName: $("#arName").val(),
-      };
-      ws.onopen = function() {
-        ws.send(JSON.stringify(wsInputs))
-      };
-      resolve(ws);
-    });
-  };
-  function receiveArpData(ws) {
-    return new Promise(function(resolve, reject) {
-      ws.onmessage = function(e) {
-        let newData = JSON.parse(e.data);
-        if (newData !== null) {
-          arpChartData = newData.graph_data;
-          resolve([ws, newData]);
-        } else {
-          reject(new Error("no data"));
-        };
-      };
-    });
-  };
-  function updateArpChartControl(newData) {
-    $("#arpChartControl tbody tr").remove(); // reset table
-    for (r of newData.table.reverse()) {
-      let statusText = (r.status === 'highest') ? '매우 높음': (
-        (r.status === 'higher') ? '높음': (
-          (r.status === 'high') ? '다소 높음': (
-            (r.status === 'mid') ? '중간 수준': (
-              (r.status === 'low') ? '다소 낮음': (
-                (r.status === 'lower') ? '낮음': '매우 낮음'
-              )
-            )
-          )
-        )
-      );
-      let redStatus = ['highest', 'higher'];
-      let blueStatus = ['lowest', 'lower'];
-      let txtColor = (redStatus.includes(r.status)) ? 'danger': (
-        (blueStatus.includes(r.status) ? 'primary': 'dark')
-      );
-      $("#arpChartControl tbody").append(`
-        <tr onclick="updateTimepoint(${r.fqe})">
-          <td>${dateFormatter(r.fqe)}</td>
-          <td class="fw-bold">${r.value.toFixed(4)}</td>
-          <td>${r.rank.toFixed(0)}위</td>
-          <td>${(r.pct*100).toFixed(0)}%</td>
-          <td class="text-${txtColor}">${statusText}</td>
-        </tr>
-      `)
-    }
-  };
-  function updateArpChart(newData) {
-    arpTsChart.data.labels = newData.graph_data.tp_all.map(tp =>
-      dateFormatter(tp)
-    );
-    // ts path
-    arpTsChart.data.datasets.push({
-      type: 'line',
-      label: 'valLine',
-      data: newData.graph_data.ts.val,
-      borderColor: hexToRgb(defaultColors[1], 1),
-      pointRadius: 0,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'line',
-      label: 'lineAvg',
-      data: newData.graph_data.ts.avg,
-      borderColor: hexToRgb(defaultColors[0], 1),
-      pointRadius: 0,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'line',
-      label: 'lineQ1',
-      data: newData.graph_data.ts.q1,
-      borderColor: hexToRgb(defaultColors[0], .5),
-      borderDash: [2, 2],
-      pointRadius: 0,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'line',
-      label: 'lineQ2',
-      data: newData.graph_data.ts.q2,
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderDash: [4, 2],
-      pointRadius: 0,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'line',
-      label: 'lineQ3',
-      data: newData.graph_data.ts.q3,
-      borderColor: hexToRgb(defaultColors[0], .5),
-      borderDash: [2, 2],
-      pointRadius: 0,
-    });
-
-    // markers on ts path
-    let latest = dateFormatter(newData.graph_data.tp_all.at(-1));
-    arpTsChart.data.datasets.push({
-      type: 'scatter',
-      label: 'tsValMarker',
-      data: [{
-        x: latest,
-        y: newData.graph_data.ts.val.at(-1)
-      }],
-      backgroundColor: hexToRgb(defaultColors[1], 1),
-      pointStyle: 'circle',
-      radius: 7,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'scatter',
-      label: 'tsAvgMarker',
-      data: [{
-        x: latest,
-        y: newData.graph_data.ts.avg.at(-1)
-      }],
-      backgroundColor: hexToRgb(defaultColors[0], 1),
-      pointStyle: 'circle',
-      radius: 7,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'scatter',
-      label: 'tsQ1Marker',
-      data: [{
-        x: latest,
-        y: newData.graph_data.ts.q1.at(-1)
-      }],
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      backgroundColor: hexToRgb('#FF9900', .5),
-      pointStyle: 'rectRot',
-      radius: 7,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'scatter',
-      label: 'tsQ2Marker',
-      data: [{
-        x: latest,
-        y: newData.graph_data.ts.q2.at(-1)
-      }],
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      backgroundColor: hexToRgb(defaultColors[0], .5),
-      pointStyle: 'rect',
-      radius: 7,
-    });
-    arpTsChart.data.datasets.push({
-      type: 'scatter',
-      label: 'tsQ3Marker',
-      data: [{
-        x: latest,
-        y: newData.graph_data.ts.q3.at(-1)
-      }],
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      backgroundColor: hexToRgb('#109618', .5),
-      pointStyle: 'rectRot',
-      radius: 7,
-    });
-    arpTsChart.update();
-
-    // dist
-    arpDistChart.data.labels = newData.graph_data.dist.bins;
-
-    // prob mass
-    arpDistChart.data.datasets.push({
-      type: 'bar',
-      label: 'pm',
-      data: newData.graph_data.dist.pm.at(-1),
-      backgroundColor: hexToRgb(defaultColors[0], .5)
-    });
-
-    // normalized kde
-    arpDistChart.data.datasets.push({
-      type: 'line',
-      label: 'kde',
-      data: newData.graph_data.dist.kde.at(-1),
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      pointRadius: 0,
-    });
-
-    // markers on x axis
-    arpDistChart.data.datasets.push({
-      type: 'scatter',
-      label: 'distValMarker',
-      data: [{
-        x: newData.graph_data.ts.val.at(-1),
-        y: 0
-      }],
-      backgroundColor: hexToRgb(defaultColors[1], 1),
-      pointStyle: 'circle',
-      radius: 7,
-    });
-    arpDistChart.data.datasets.push({
-      type: 'scatter',
-      label: 'distAvgMarker',
-      data: [{
-        x: newData.graph_data.ts.avg.at(-1),
-        y: 0
-      }],
-      backgroundColor: hexToRgb(defaultColors[0], 1),
-      pointStyle: 'circle',
-      radius: 7,
-    });
-    arpDistChart.data.datasets.push({
-      type: 'scatter',
-      label: 'distQ1Marker',
-      data: [{
-        x: newData.graph_data.ts.q1.at(-1),
-        y: 0
-      }],
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      backgroundColor: hexToRgb('#FF9900', .5),
-      pointStyle: 'rectRot',
-      radius: 7,
-    });
-    arpDistChart.data.datasets.push({
-      type: 'scatter',
-      label: 'distQ2Marker',
-      data: [{
-        x: newData.graph_data.ts.q2.at(-1),
-        y: 0
-      }],
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      backgroundColor: hexToRgb(defaultColors[0], .5),
-      pointStyle: 'rect',
-      radius: 7,
-    });
-    arpDistChart.data.datasets.push({
-      type: 'scatter',
-      label: 'distQ3Marker',
-      data: [{
-        x: newData.graph_data.ts.q3.at(-1),
-        y: 0
-      }],
-      borderColor: hexToRgb(defaultColors[0], 1),
-      borderWidth: 3,
-      backgroundColor: hexToRgb('#109618', .5),
-      pointStyle: 'rectRot',
-      radius: 7,
-    });
-
-    arpDistChart.update();
-  };
-  function updateArpContents(ws, newData) {
-    return new Promise(function(resolve, reject) {
-      ws.close();
-      updateArpChartControl(newData);
-      updateArpChart(newData);
-      resolve();
-    });
-  };
+  var arpWs;
+  var arpStaticData;
   function activateArpSpinner() {
     $('.overlay').each(function(i, overlay) {
       overlay.style.display = 'block';
     });
     $('.spanner').each(function(i, spinner) {
       spinner.style.display = 'block';
+    });
+  };
+  function resetArpAll() {
+    return new Promise(function(resolve) {
+      // close web socket
+      if (arpWs !== undefined) {
+        arpWs.close();
+      };
+
+      // reset data
+      if (arpStaticData !== undefined) {
+        arpStaticData = undefined
+      };
+      if (arpDynamicDataSets !== []) {
+        arpDynamicDataSets = []
+      };
+
+      // reset charts
+      arpTsChart.data.labels = [];
+      arpTsChart.data.datasets = [];
+      arpTsChart.update();
+
+      arpDistChart.data.labels = [];
+      arpDistChart.data.datasets = [];
+      arpDistChart.update();
+
+      resolve();
+    });
+  };
+  function createArpWs() {
+    return new Promise(function(resolve) {
+      arpWs = new WebSocket(
+        `ws://${window.location.host}/ws/dashboard/stkrpt/ar`
+      );
+      resolve();
+    });
+  };
+  function sendArpStaticInputs() {
+    return new Promise(function(resolve, reject) {
+      let staticInputs = {
+        requestType: 'static',
+        stockCode: "{{ corp.stockCode }}",
+        oc: $("input[name=oc]:checked").val(),
+        arName: $("#arName").val(),
+      };
+      arpWs.onopen = function() {
+        arpWs.send(JSON.stringify(staticInputs))
+      };
+      resolve();
+    });
+  };
+  function receiveArpStaticData() {
+    return new Promise(function(resolve, reject) {
+      arpWs.onmessage = function(e) {
+        arpStaticData = JSON.parse(e.data);
+        if (arpStaticData !== null) {
+          resolve()
+          // arpChartData = newData.graph_data;
+          // resolve([ws, newData]);
+        } else {
+          reject(new Error("no data"));
+        };
+      };
+    });
+  };
+  function updateArpStaticContents() {
+    return new Promise(function(resolve) {
+      // parsing data
+      let timeHorizon = JSON.parse(arpStaticData.t);
+      let timeSeries = JSON.parse(arpStaticData.val);
+
+      // update ts chart
+      arpTsChart.data.labels = timeHorizon.map(tp => dateFormatter(tp));
+      arpTsChart.data.datasets.push({
+        type: 'line',
+        label: 'valLine',
+        data: timeSeries,
+        borderColor: hexToRgb(arpChartColors[1], 1),
+        pointRadius: 3,
+      })
+      arpTsChart.update();
+      // update table
+      let tpColumn = timeHorizon.slice().reverse();
+      let valColumn = timeSeries.slice().reverse();
+      $('#arpChartControl tbody tr').remove();
+      for (let [i, tp] of tpColumn.entries()) {
+        let rowColor = (i === 0) ? 'table-active':'';
+        let rowVal = (valColumn[i] === null) ? '-':valColumn[i].toFixed(4)
+        $('#arpChartControl tbody').append(`
+          <tr class="${rowColor}" tp="${tp}" onclick="updateArpDynamic(this)">
+            <td>${dateFormatter(tp)}</td>
+            <td class="fw-bold">${rowVal}</td>
+            <td class="text-center text-muted result-cell" colspan="3">조회하기</td>
+          </tr>
+        `)
+      };
+      resolve();
     });
   };
   function deactivateArpSpinner() {
@@ -574,94 +436,307 @@
     });
   };
   function viewArpSuccess() {
-    $('#arpSuccess')[0].style.display = 'block';
-    $('#arpFailed')[0].style.display = 'none';
-    deactivateArpSpinner();
+      $('#arpSuccess')[0].style.display = 'block';
+      $('#arpFailed')[0].style.display = 'none';
+      deactivateArpSpinner();
   };
-  function viewArpFail(fail) {
+  function viewArpFail() {
     $('#arpSuccess')[0].style.display = 'none';
     $('#arpFailed')[0].style.display = 'block';
     deactivateArpSpinner();
   };
-  function updateArp() {
-    arpTsChart.data.labels = [];
-    arpTsChart.data.datasets = [];
-    arpDistChart.data.labels = [];
-    arpDistChart.data.datasets = [];
+  function triggerFirstDynamicRow() {
+    $('#arpChartControl tbody .table-active').trigger('click');
+  };
+  function updateArpStatic() {
     activateArpSpinner();
-    let newData = createArpWs()
-      .then(ws => sendArpInputs(ws))
-      .then(ws => receiveArpData(ws))
-      .then(([ws, newData]) => updateArpContents(ws, newData))
-      .then(() => viewArpSuccess())
-      .catch(function(err) {
-        viewArpFail();
-      });
+    resetArpAll()
+    .then(() => createArpWs())
+    .then(() => sendArpStaticInputs())
+    .then(() => receiveArpStaticData())
+    .then(() => updateArpStaticContents())
+    .then(() => viewArpSuccess())
+    .then(() => triggerFirstDynamicRow())
+    .catch(function(err) {
+      viewArpFail();
+    });
+  };
+
+  var arpDynamicDataSets = [];
+  function deactivateArpControl(e) {
+    return new Promise(function(resolve) {
+      $('#arpChartControl tbody tr').removeClass();
+      e.classList.add('table-active');
+      let resultCells = e.getElementsByClassName('result-cell')[0];
+      resultCells.innerHTML = `
+        <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
+      `;
+      resolve();
+    });
+  };
+  function getArpDynamicData(e) {
+    return new Promise(function(resolve) {
+      let tp = $(e).attr('tp');
+      let ds = arpDynamicDataSets.find(ds => ds.tp === parseInt(tp));
+      if (ds === undefined) {
+        ds = sendArpDynamicInputs(e)
+          .then(() => receiveArpDynamicData())
+      };
+      resolve(ds);
+    });
+  };
+  function sendArpDynamicInputs(e) {
+    return new Promise(function(resolve) {
+      let tp = Number(e.getAttribute('tp'));
+      let dynamicInputs = {
+        requestType: 'dynamic',
+        stockCode: "{{ corp.stockCode }}",
+        oc: $("input[name=oc]:checked").val(),
+        arName: $("#arName").val(),
+        tp: tp,
+      };
+      arpWs.send(JSON.stringify(dynamicInputs))
+      resolve();
+    });
+  };
+  function receiveArpDynamicData() {
+    return new Promise(function(resolve) {
+      arpWs.onmessage = function(e) {
+        let ds = JSON.parse(e.data);
+        if (ds !== null) {
+          arpDynamicDataSets.push(ds);
+          resolve(ds);
+        } else {
+          reject(new Error("no data"));
+        };
+      };
+    });
+  };
+  const arpTsChartMap = [
+    {
+        markerLabel: "{{ corp.corpName }}",
+        pathLabel: 'valLine',
+        id: 'val',
+        color: hexToRgb(arpChartColors[1], 1),
+        style: 'circle',
+    }, {
+        markerLabel: "{{ corp.market }} 평균",
+        pathLabel: 'avgLine',
+        id: 'avg',
+        color: hexToRgb(arpChartColors[0], 1),
+        style: 'circle',
+    }, {
+        markerLabel: "{{ corp.market }} 25%",
+        pathLabel: 'q1Line',
+        id: 'q1',
+        color: hexToRgb(arpChartColors[2], 1),
+        style: 'rectRot',
+    }, {
+        markerLabel: "{{ corp.market }} 50%",
+        pathLabel: 'q2Line',
+        id: 'q2',
+        color: hexToRgb(arpChartColors[0], 1),
+        style: 'rect',
+    }, {
+        markerLabel: "{{ corp.market }} 75%",
+        pathLabel: 'q3Line',
+        id: 'q3',
+        color: hexToRgb(arpChartColors[3], 1),
+        style: 'rectRot',
+    },
+  ];
+  const arpDistChartConfigMap = [
+    {
+      type: 'bar',
+      label: 'hist',
+      id: 'counts',
+      color: hexToRgb(arpChartColors[0], .5),
+      yAxisID: 'y',
+    }, {
+      type: 'line',
+      label: 'kde',
+      id: 'kde',
+      color: hexToRgb(arpChartColors[0], 1),
+      yAxisID: 'y1',
+    }, {
+      type: 'scatter',
+      label: 'distValMarker',
+      id: 'val',
+      color: hexToRgb(arpChartColors[1], 1),
+      style: 'circle',
+      yAxisID: 'y',
+    }, {
+      type: 'scatter',
+      label: 'distAvgMarker',
+      id: 'avg',
+      color: hexToRgb(arpChartColors[0], 1),
+      style: 'circle',
+      yAxisID: 'y',
+    }, {
+      type: 'scatter',
+      label: 'distQ1Marker',
+      id: 'q1',
+      color: hexToRgb(arpChartColors[2], 1),
+      style: 'rectRot',
+      yAxisID: 'y',
+    }, {
+      type: 'scatter',
+      label: 'distQ2Marker',
+      id: 'q2',
+      color: hexToRgb(arpChartColors[0], 1),
+      style: 'rect',
+      yAxisID: 'y',
+    }, {
+      type: 'scatter',
+      label: 'distQ3Marker',
+      id: 'q3',
+      color: hexToRgb(arpChartColors[3], 1),
+      style: 'rectRot',
+      yAxisID: 'y',
+    }
+  ];
+  function updateArpDynamicContents(e, ds) {
+    return new Promise(function(resolve) {
+      // update arp chart control
+      let rank = (ds.rank === null) ? '-':ds.rank;
+      $(e).find('.result-cell-rank').append(rank);
+      let pct = (ds.pct === null) ? '-':`${(ds.pct*100).toFixed(2)}%`
+      $(e).find('.result-cell-pct').append(pct);
+      let evalLk = (ds.eval === null) ? '-': (
+        (ds.eval === 'highest') ? '매우 높음': (
+          (ds.eval === 'higher') ? '높음': (
+            (ds.eval === 'high') ? '다소 높음': (
+              (ds.eval === 'mid') ? '중간 수준': (
+                (ds.eval === 'low') ? '다소 낮음': (
+                  (ds.eval === 'lower') ? '낮음': '매우 낮음'
+                )
+              )
+            )
+          )
+        )
+      );
+      let redEvals = ['highest', 'higher'];
+      let blueEvals = ['lowest', 'lower'];
+      let txtColor = (redEvals.includes(ds.eval)) ? 'danger': (
+        (blueEvals.includes(ds.eval) ? 'primary': 'dark')
+      );
+      $(e).find('.result-cell-eval').append(evalLk).addClass(`text-${txtColor}`);
+
+      // update path and markers on ts chart
+      for (tm of arpTsChartMap) {
+        // marker
+        let tsMarker = arpTsChart.data.datasets.find(ds =>
+          ds.label === tm.markerLabel
+        );
+        if (tsMarker === undefined) {
+          arpTsChart.data.datasets.push({
+            type: 'scatter',
+            label: tm.markerLabel,
+            data: [{
+              x: dateFormatter(ds.tp),
+              y: ds[tm.id]
+            }],
+            backgroundColor: tm.color,
+            pointStyle: tm.style,
+            radius: 7,
+          });
+        } else {
+          tsMarker.data = [{
+            x: dateFormatter(ds.tp),
+            y: ds[tm.id],
+          }];
+        };
+
+        // path
+        if (tm.pathLabel !== 'valLine') {
+          let tsPath = arpTsChart.data.datasets.find(ds =>
+            ds.label === tm.pathLabel
+          );
+          if (tsPath === undefined) {
+            arpTsChart.data.datasets.push({
+              type: 'line',
+              label: tm.pathLabel,
+              data: [{
+                x: dateFormatter(ds.tp),
+                y: ds[tm.id]
+              }],
+              backgroundColor: tm.color,
+              pointStyle: tm.style,
+              radius: 3,
+            });
+          } else {
+            if (tsPath.data.x !== ds.tp) {
+              tsPath.data.push({
+                x: dateFormatter(ds.tp),
+                y: ds[tm.id],
+              });
+              tsPath.data.sort((a,b) => (a.x > b.x) ? 1: ((b.x > a.x) ? -1:0));
+            };
+          };
+        };
+      };
+      arpTsChart.update();
+
+      // update dist
+
+      // hist and kde
+      arpDistChart.data.labels = ds.bins
+      for (dm of arpDistChartConfigMap) {
+        let distItem = arpDistChart.data.datasets.find(ds =>
+          ds.label === dm.label
+        );
+        distData = (dm.type === 'scatter') ? [{x: ds[dm.id], y: 0}]:ds[dm.id];
+        distPointRadius = (dm.type === 'scatter') ? 7:0;
+        if (distItem === undefined) {
+          arpDistChart.data.datasets.push({
+            type: dm.type,
+            label: dm.label,
+            data: distData,
+            backgroundColor: dm.color,
+            borderColor: dm.color,
+            pointRadius: distPointRadius,
+            pointStyle: dm.style,
+            yAxisID: dm.yAxisID,
+          })
+        } else {
+          distItem.data = distData
+        };
+      };
+
+      // markers on dist
+      arpDistChart.update();
+    });
+  };
+  function activateArpControl(e, ds) {
+    return new Promise(function(resolve) {
+      $(e).find('.result-cell').remove();
+      $(e).append(`
+        <td class="result-cell result-cell-rank"></td>
+        <td class="result-cell result-cell-pct"></td>
+        <td class="result-cell result-cell-eval"></td>
+      `);
+      resolve(ds);
+    })
+  };
+  function updateArpDynamic(e) {
+    deactivateArpControl(e)
+      .then(() => getArpDynamicData(e))
+      .then(ds => activateArpControl(e, ds))
+      .then(ds => updateArpDynamicContents(e, ds))
   };
   $(document).ready(function() {
-    updateArp();
+    updateArpStatic();
   });
-
-  function updateArpTsChartByTimepoint(tp, markerId, markerLabel) {
-    const tsMarkerMap = [
-      {label: 'tsValMarker', id: 'val'},
-      {label: 'tsAvgMarker', id: 'avg'},
-      {label: 'tsQ1Marker', id: 'q1'},
-      {label: 'tsQ2Marker', id: 'q2'},
-      {label: 'tsQ3Marker', id: 'q3'},
-    ];
-    let loc = arpChartData.tp_all.indexOf(tp);
-    for (tmm of tsMarkerMap) {
-      let ds = arpTsChart.data.datasets.find(ds =>
-        ds.label === tmm.label
-      );
-      let newMarker = {
-        x: dateFormatter(tp),
-        y: arpChartData.ts[tmm.id].at(loc)
-      };
-      ds.data = [newMarker];
-    }
-  };
-  function updateArpDistChartByTimepoint(tp) {
-    const distMarkerMap = [
-      {label: 'distValMarker', id: 'val'},
-      {label: 'distAvgMarker', id: 'avg'},
-      {label: 'distQ1Marker', id: 'q1'},
-      {label: 'distQ2Marker', id: 'q2'},
-      {label: 'distQ3Marker', id: 'q3'},
-    ];
-    let loc = arpChartData.tp_all.indexOf(tp);
-    let dspm = arpDistChart.data.datasets.find(ds => ds.label === 'pm');
-    let dskde = arpDistChart.data.datasets.find(ds => ds.label === 'kde');
-    dspm.data = arpChartData.dist.pm.at(loc);
-    dskde.data = arpChartData.dist.kde.at(loc);
-    for (dmm of distMarkerMap) {
-      let ds = arpDistChart.data.datasets.find(ds =>
-        ds.label === dmm.label
-      );
-      let newMarker = {
-        x: arpChartData.ts[dmm.id].at(loc),
-        y: 0
-      };
-      ds.data = [newMarker];
-    }
-  };
-  function updateTimepoint(tp) {
-    console.log($('#arpChartControl tbody'))
-    updateArpTsChartByTimepoint(tp, 'val', 'valMarker');
-    updateArpTsChartByTimepoint(tp, 'avg', 'avgMarker');
-    updateArpTsChartByTimepoint(tp, 'q1', 'q1Marker');
-    updateArpTsChartByTimepoint(tp, 'q2', 'q2Marker');
-    updateArpTsChartByTimepoint(tp, 'q3', 'q3Marker');
-    updateArpDistChartByTimepoint(tp);
-    arpTsChart.update();
-    arpDistChart.update();
-  };
-
 </script>
 
 <script>
   // fa chart
+  const faChartColors = [
+    '#457CA2', "#DC3912", "#FF9900", "#109618", "#990099", "#3B3EAC", "#0099C6",
+    "#DD4477", "#66AA00", "#B82E2E", "#316395", "#994499", "#22AA99", "#AAAA11",
+    "#6633CC", "#E67300", "#8B0707", "#329262", "#5574A6", "#651067"
+  ];
+
   // create fa chart
   const faChartConfig = {
     type: 'scatter',
@@ -710,7 +785,7 @@
     }
   };
   const faChart = new Chart(
-    document.getElementById('faChart').getContext('2d'),
+    document.getElementById('faChart'),
     faChartConfig
   );
 
@@ -785,7 +860,7 @@
         for (f of fltrd) {
           var resId = `faFiltered-${f.ft_div.toLowerCase()}`;
           $(`#${resId}`).append(`
-            <span class="badge rounded-pill bg-secondary" type="button" onclick="queryFaData('${stockCode}', '${f.oc}', '${f.nm}', '${f.lk}')">
+            <span class="badge rounded-pill bg-secondary" type="button" onclick="queryFaData('${stockCode}', '${f.oc}', '${f.nm}')">
               ${f.lk}
             </span>
           `)
@@ -803,7 +878,7 @@
           `)
         } else {
           $('#faMatched').append(`
-            <span class="badge rounded-pill bg-success" type="button" onclick="queryFaData('${stockCode}', '${matched.oc}', '${matched.nm}', '${matched.lk}')">
+            <span class="badge rounded-pill bg-success" type="button" onclick="queryFaData('${stockCode}', '${matched.oc}', '${matched.nm}')">
               ${matched.lk}
             </span>
           `)
@@ -817,21 +892,15 @@
   };
 
   // websocket
-  function addFaChartControl(oc, faName, lk) {
+  function addFaChartControlRow(oc, faName) {
     let rowId = `faChartControlRow-${oc}-${faName}`
-    let ocLk = (oc === 'CFS') ? '연결':'별도';
     return new Promise(function(resolve) {
       $('#faChartControl tbody').append(`
       <tr id=${rowId}>
         <th scope="row"><button class="btn btn-close remove-fa-row"></button></th>
-        <td class="fa-oc">${ocLk}</td>
-        <td class="fa-lk">${lk}</td>
-        <td class="fa-path">-</td>
-        <td class="fa-status">
+        <td class="result-cell text-center" colspan="6">
           <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
         </td>
-        <td class="fa-chart-value-handler">-</td>
-        <td class="fa-chart-growth-handler">-</td>
       </tr>
       `);
       resolve(); // resolve dummy for promise chaining
@@ -839,20 +908,12 @@
   };
   function createFaWs() {
     return new Promise(function(resolve) {
-      // resolve(
-      //   new WebSocket(
-      //     `ws://${window.location.host}/ws/dashboard/stkrpt/fa/${faName}/${stockCode}`
-      //   )
-      // );
-      resolve(
-        new WebSocket(
+      resolve(new WebSocket(
           `ws://${window.location.host}/ws/dashboard/stkrpt/fa`
-        )
-      );
-
+      ));
     });
   };
-  function sendFaChartInputs(ws, stockCode, oc, faName) {
+  function sendFaInputs(ws, stockCode, oc, faName) {
     return new Promise(function(resolve) {
       ws.onopen = function() {
         ws.send(JSON.stringify({
@@ -864,41 +925,26 @@
       resolve(ws);
     })
   };
-  function receiveFaChartData(ws) {
-    return new Promise(function(resolve, reject) {
+  function getFaData(ws) {
+    return new Promise(function(resolve) {
       ws.onmessage = function(e) {
-        var newData = JSON.parse(e.data);
-        if (newData !== null) {
-          resolve([ws, newData]);
-        } else {
-          ws.close();
-          reject(new Error("no data"));
-        };
+        faData = JSON.parse(e.data);
+        resolve([ws, faData]);
       };
     });
   };
-
-  // update contents
-  function parseFaChartData(newData) {
-    let xTimeStamp = JSON.parse(newData.graph_data.x);
-    return {
-      value: JSON.parse(newData.graph_data.y_value),
-      growth: JSON.parse(newData.graph_data.y_growth),
-      x: xTimeStamp.map(tp => dateFormatter(tp))
-    };
-  };
-  function updateFaX(newData) {
+  function updateFaX(faData) {
     return new Promise(function(resolve) {
-      let oldX = faChart.data.labels;
-      let newX = parseFaChartData(newData).x;
-      if (oldX.length === 0) {
-        faChart.data.labels = newX;
-      } else if (newX.length > oldX.length) {
-        for (dt of newX) {
-          for (ds of faChart.data.datsets) {
+      let oldT = faChart.data.labels;
+      let newT = JSON.parse(faData.chart_data.t).map(tp => dateFormatter(tp));
+      if (oldT.length === 0) {
+        faChart.data.labels = newT;
+      } else if (newT.length > oldT.length) {
+        for (dt of newT) {
+          for (ds of faChart.data.datasets) {
             newY = []
             for (y of ds.data) {
-              let loc = oldX.indexOf(dt);
+              let loc = oldT.indexOf(dt);
               if (loc === -1) {
                 newY.push(null);
               } else {
@@ -907,84 +953,94 @@
             };
           };
         };
-        faChart.data.labels = newX;
+        faChart.data.labels = newT;
       };
-      resolve(newData);
+      resolve();
     })
   };
-  function updateFaY(newData) {
+  function updateFaY(faData) {
     return new Promise(function(resolve) {
-      let newFaChartData = parseFaChartData(newData);
-      let newValue = [];
-      let newGrowth = [];
+      let cleanValue = [];
+      let cleanGrowth = [];
+
+      let newT = JSON.parse(faData.chart_data.t).map(tp => dateFormatter(tp));
+      let newVal = JSON.parse(faData.chart_data.y_val);
+      let newGrowth = JSON.parse(faData.chart_data.y_growth);
       for (dt of faChart.data.labels) {
-        let loc = newFaChartData.x.indexOf(dt);
+        let loc = newT.indexOf(dt);
         if (loc === -1) {
-          newValue.push(null);
-          newGrowth.push(null);
+          cleanValue.push(null);
+          cleanGrowth.push(null);
         } else {
-          newValue.push(newFaChartData.value[loc]);
-          newGrowth.push(newFaChartData.growth[loc]);
+          cleanValue.push(newVal[loc]);
+          cleanGrowth.push(newGrowth[loc]);
         };
       };
 
-      let ocLk = (newData.fa_info.oc === 'CFS') ? '연결':'별도';
-      let valLabel = `${newData.fa_info.lk} (${ocLk})`;
-      let growthLabel = `${newData.fa_info.lk} 변동율 (${ocLk})`;
-      let dcolor = defaultColors[faChart.data.datasets.length / 2]
+      let fasInfo = JSON.parse(faData.fas_info)
+      let ocLk = (fasInfo.oc === 'CFS') ? '연결':'별도';
+      let valLabel = `${fasInfo.lk} (${ocLk})`;
+      let growthLabel = `${fasInfo.lk} 변동율 (${ocLk})`;
+      let dcolor = faChartColors.shift();
       faChart.data.datasets.push({
         type: 'line',
         label: valLabel,
-        data: newValue,
+        data: cleanValue,
         borderColor: dcolor,
         yAxisID: 'yl',
       });
       faChart.data.datasets.push({
         type: 'bar',
         label: growthLabel,
-        data: newGrowth,
+        data: cleanGrowth,
         backgroundColor: hexToRgb(dcolor, .5),
         borderColor: hexToRgb(dcolor, .5),
         yAxisID: 'yr',
       });
       faChart.update();
-      resolve(newData);
-    });
-  };
-  function updateFaChartControl(newData) {
-    let rowId = `faChartControlRow-${newData.fa_info.oc}-${newData.fa_info.nm}`
-    let row = $(`#${rowId}`);
-    let ocLk = ((newData.fa_info.oc === 'CFS') ? '연결':'별도');
-    let valLabel = `${newData.fa_info.lk} (${ocLk})`;
-    let growthLabel = `${newData.fa_info.lk} 변동율 (${ocLk})`;
 
-    // row.find('.fa-oc').html(ocLk);
-    // row.find('.fa-lk').html(newData.fa_info.lk)
-    row.find('.fa-path').html(newData.fa_info.path)
-    row.find('.fa-status').html('전시 중')
-    row.find('.fa-status').addClass('text-success')
-    row.find('.fa-chart-value-handler').empty().append(`
-      <div class="form-check form-switch">
-        <input type="checkbox" class="form-check-input" data-control="${valLabel}" checked>
-      </div>
-    `);
-    row.find('.fa-chart-growth-handler').empty().append(`
-      <div class="form-check form-switch">
-        <input type="checkbox" class="form-check-input" data-control="${growthLabel}" checked>
-      </div>
-    `);
-  };
-  function updateFaContents(ws, newData) {
-    return new Promise(function(resolve) {
-      ws.close();
-      updateFaChartControl(newData);
-      updateFaX(newData)
-      .then(newData => updateFaY(newData));
       resolve();
     });
-  }
+  };
+  function updateFaChartControl(faData) {
+    let fasInfo = JSON.parse(faData.fas_info);
+    let rowId = `faChartControlRow-${fasInfo.oc}-${fasInfo.nm}`
+    let row = $(`#${rowId}`);
+    let ocLk = (fasInfo.oc === 'CFS') ? '연결':'별도';
+    let valLabel = `${fasInfo.lk} (${ocLk})`;
+    let growthLabel = `${fasInfo.lk} 변동율 (${ocLk})`;
+    let status = (faData.chart_data === null) ? '데이터 없음':'전시 중';
+    let statusColor = (faData.chart_data === null) ? 'text-danger':'text-success';
+
+    row.find('.result-cell').remove();
+    row.append(`
+      <td class="result-cell result-cell-oc">${ocLk}</td>
+      <td class="result-cell result-cell-lk">${fasInfo.lk}</td>
+      <td class="result-cell result-cell-path">${fasInfo.path}</td>
+      <td class="result-cell result-cell-status ${statusColor}">${status}</td>
+      <td class="result-cell value-handler">
+        <div class="form-check form-switch">
+          <input type="checkbox" class="form-check-input" data-control="${valLabel}" checked>
+        </div>
+      </td>
+      <td class="result-cell growth-handler">
+        <div class="form-check form-switch">
+          <input type="checkbox" class="form-check-input" data-control="${growthLabel}" checked>
+        </div>
+      </td>
+    `);
+  };
+  function updateFaContents(ws, faData) {
+    return new Promise(function(resolve) {
+      ws.close();
+      updateFaChartControl(faData);
+      updateFaX(faData)
+        .then(() => updateFaY(faData));
+      resolve();
+    });
+  };
   function activateFaChartControl() {
-    $('.fa-chart-value-handler input').change(function() {
+    $('.value-handler input').change(function() {
       let dataLabel = $(this).attr('data-control')
       let data = faChart.data.datasets.find(x => x.label === dataLabel)
       if ($(this).is(":checked")) {
@@ -994,7 +1050,7 @@
       }
       faChart.update();
     });
-    $('.fa-chart-growth-handler input').change(function() {
+    $('.growth-handler input').change(function() {
       let dataLabel = $(this).attr('data-control')
       let data = faChart.data.datasets.find(x => x.label === dataLabel)
       if ($(this).is(":checked")) {
@@ -1006,8 +1062,13 @@
     });
     $('.remove-fa-row').on('click', function() {
       let row = $(this).closest('tr')
-      row.find('input').each(function() {
-        let dataLabel = $(this).attr('data-control')
+      row.find('input').each(function(i) {
+        let dataLabel = $(this).attr('data-control');
+        if (i === 0) {
+          let dcolor = faChart.data.datasets.find(x =>
+            x.label === dataLabel).borderColor;
+          faChartColors.unshift(dcolor)
+        };
         faChart.data.datasets = faChart.data.datasets.filter(x =>
           x.label != dataLabel
         );
@@ -1020,33 +1081,28 @@
     });
   };
 
-  function queryFaData(stockCode, oc, faName, lk) {
+  function queryFaData(stockCode, oc, faName) {
     deactivateFaSearch();
-    addFaChartControl(oc, faName, lk);
+    addFaChartControlRow(oc, faName);
     createFaWs()
-    .then(ws => sendFaChartInputs(ws, stockCode, oc, faName))
-    .then(ws => receiveFaChartData(ws))
-    .then(([ws, newData]) => updateFaContents(ws, newData))
-    .then(dummy => activateFaChartControl())
-    .catch(function(error) {
-      let row = $(`#faChartControlRow-${oc}-${faName}`);
-      row.find('.fa-status').html('데이터 없음');
-      row.find('.fa-status').addClass('text-danger');
-      row.find('.btn-close').on('click', function() {
-        row.remove();
-      })
-    });
+      .then(ws => sendFaInputs(ws, stockCode, oc, faName))
+      .then(ws => getFaData(ws))
+      .then(([ws, faData]) => updateFaContents(ws, faData))
+      .then(() => activateFaChartControl())
   };
 
-  $(document).ready(async function() {
-    presets = [{
-      name: 'Equity', lk: '자본총계'
-    }, {
-      name: 'ProfitLoss', lk: '당기순이익(손실)'
-    }]
-    for (fa of presets) {
-      queryFaData(stockCode, 'CFS', fa.name, fa.lk)
-    }
+  $(document).ready(function() {
+    presets = ['Equity', 'ProfitLoss'];
+    for (faName of presets) {
+      queryFaData(stockCode, 'CFS', faName)
+    };
+
+    // new Promise(function(resolve) {
+    //   queryFaData(stockCode, 'CFS', 'Equity');
+    //   resolve();
+    // }).then(function() {
+    //   queryFaData(stockCode, 'CFS', 'ProfitLoss')
+    // });
   });
 
 

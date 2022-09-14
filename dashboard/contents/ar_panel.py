@@ -1,5 +1,8 @@
-from .data.account_ratio import AccountRatioSeries
+from .data.ar import ArSeries
+from .data.tools import *
 
+from asgiref.sync import sync_to_async, async_to_sync
+from channels.layers import get_channel_layer
 from ggdb.models import Corp, AccountRatio
 from scipy.stats import gaussian_kde, skew
 
@@ -8,52 +11,72 @@ import numpy as np
 import pandas as pd
 
 class ArPanel:
-    def __init__(self, ar_nm, oc, stock_code):
-        self.corp = Corp.objects.get(stockCode=stock_code)
-        self.ar_lk = AccountRatio.objects.get(name=ar_nm).labelKor
-        self.ars = AccountRatioSeries(ar_nm, oc, self.corp.market)
-        self.ts = self.ars.get_time_series(self.corp.stockCode)
-        self._dateformatter = lambda tp: f"{tp.year}-{str(tp.month).zfill(2)}-{str(tp.day).zfill(2)}"
-        self._hex_to_rgba = lambda h, opacity: (
-            f"rgba{tuple([int(h.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)] + [opacity])}"
+    def __init__(self, ar_nm, oc, stock_code, channel_name):
+        self.channel_layer = get_channel_layer()
+        self.channel_name = channel_name
+
+        self.stock_code = stock_code
+        self.market = Corp.objects.get(stockCode=stock_code).market
+
+        ar = AccountRatio.objects.get(name=ar_nm)
+        self.ars = ArSeries(
+            ar_syntax = ar.syntax,
+            change_in = ar.changeIn,
+            oc = oc
         )
-        self._graph_data = None
-        self._table_data = None
-        # self._global_props = None
 
-    def update_table_data(self):
-        self._table_data = []
+    def generate_static_data(self):
+        ts = self.ars.time_series(self.stock_code)
+        if len(ts) > 0:
+            ts = fill_tgap(ts)
+            data = json.dumps({
+                't': ts.fqe.to_json(orient='records'),
+                'val': ts.value.to_json(orient='records'),
+            })
+        else:
+            data = json.dumps(None)
 
-        # add distribution data for each timepoint
-        for tp in self.ts.fqe.sort_values():
-            val = self.ts.loc[self.ts.fqe == tp].value
-            cs = self.ars.get_cross_section(tp)
-            cs['rank'] = cs.value.rank(ascending=False, method='min')
-            cs['pct'] = cs.value.rank(pct=True, method='min')
-            cs['status'] = pd.cut(
-                cs.pct,
-                bins = [0, .05, .2, .4, .6, .8, .95, 1],
-                # labels = ['highest', 'higher', 'high', 'mid', 'low', 'lower', 'lowest'],
-                labels = ['lowest', 'lower', 'low', 'mid', 'high', 'higher', 'highest'],                
-            )
-            d = cs.loc[cs.stock_code==self.corp.stockCode].to_dict(orient='records')[0]
-            d['fqe'] = int(d['fqe'].timestamp() * 1000) # pd timestampe to js timestamp
-            self._table_data.append(d)
+        async_to_sync(self.channel_layer.send)(
+            self.channel_name, {
+                'type': 'ar.static',
+                'text': data
+            }
+        )
 
-    def update_graph_data(self):
-        # reset data for figure
-        self._graph_data = {}
+    def generate_dynamic_data(self, tp):
+        tp_json = tp
+        tp = pd.to_datetime(tp, unit='ms')
+        cs = self.ars.cross_section(self.market, tp)
+        cs['rank'] = cs.value.rank(ascending=False, method='min')
+        cs['pct'] = cs.value.rank(pct=True, method='min')
+        cs['eval'] = pd.cut(
+            cs.pct,
+            bins = [0, .05, .2, .4, .6, .8, .95, 1],
+            labels = ['lowest', 'lower', 'low', 'mid', 'high', 'higher', 'highest'],
+        )
 
-        # time horizon
-        self._graph_data['tp_all'] = [td['fqe'] for td in self._table_data]
+        ## stock specific data
+        if self.stock_code in cs.stock_code.to_list():
+            d = cs.loc[cs.stock_code==self.stock_code].to_dict(orient='records')[0]
+        else:
+            d = {
+                'value': None,
+                'rank': None,
+                'pct': None,
+                'eval': None,
+            }
 
-        # evaluate skewness
+        ## cross sectional distribution
+        desc = cs.value.describe().to_dict()
+
+        # winsorize
+        # step1. evaluate skewness
         bound_outlier = [.025, .975]
-        lb, ub = self.ars.panel.value.quantile(bound_outlier)
-        outliers = (self.ars.panel.value < lb) | (self.ars.panel.value > ub)
-        sk = skew(self.ars.panel.value[~outliers])
+        lb, ub = cs.value.quantile(bound_outlier)
+        outliers = (cs.value < lb) | (cs.value > ub)
+        sk = skew(cs.value[~outliers])
 
-        # determine truncation side based on skewness
+        # step2. determine truncation side based on skewness
         bound = (
             [.01, .95] if sk >= 2
             else (
@@ -61,71 +84,52 @@ class ArPanel:
                 else [.025, .975]
             )
         )
+        # step3. winsorize
+        lb, ub = cs.value.quantile(bound)
+        trunc = (cs.value >= lb) & (cs.value <=ub)
+        cs_trunc = cs[trunc]
 
-        # update self._graph_data
-        gmax, gmin = None, None
-        val_all = self.ts.value.tolist()
-        avg_all, q1_all, q2_all, q3_all = [], [], [], []
-        cs_all = []
-        for tp in self.ts.fqe.sort_values():
-            cs = self.ars.get_cross_section(tp)
+        # replace mean with winsorized one
+        desc_trunc = cs_trunc.value.describe().to_dict()
+        desc['mean'] = desc_trunc['mean']
 
-            desc = cs.value.describe().to_dict()
-            q1_all.append(desc['25%'])
-            q2_all.append(desc['50%'])
-            q3_all.append(desc['75%'])
-
-            lb, ub = cs.value.quantile(bound)
-            trunc = (cs.value >= lb) & (cs.value <= ub)
-            avg_all.append(cs[trunc].value.mean())
-
-            cs_all.append(cs[trunc].value.tolist())
-
-            lmax = cs[trunc].value.max()
-            lmin = cs[trunc].value.min()
-            if not gmax:
-                gmax = lmax
-            elif gmax < desc['max']:
-                gmax = lmax
-            if not gmin:
-                gmin = lmin
-            elif gmin > desc['min']:
-                gmin = lmin
-
-        self._graph_data['ts'] = {
-            'val': val_all,
-            'avg': avg_all,
-            'q1': q1_all,
-            'q2': q2_all,
-            'q3': q3_all,
-        }
-
-        count_all = [len(cs) for cs in cs_all]
+        # histogram
         bins = list(np.linspace(
-            gmin, gmax,
-            int(sum(count_all)/len(count_all))
+            desc_trunc['min'],
+            desc_trunc['max'],
+            int(desc_trunc['count']),
         ))
+        counts = np.histogram(cs_trunc.value, bins)[0]
+        counts = [int(c) for c in counts]
 
-        pm_all = [list(get_prob_mass(s, bins)) for s in cs_all]
-        kde_all = [list(get_norm_kde(s, bins)) for s in cs_all]
+        # kde
+        norm_kde = get_norm_kde(cs_trunc.value, bins)
 
-        self._graph_data['dist'] = {
+        data = json.dumps({
+            'tp': tp_json,
+            'val': d['value'],
+            'rank': d['rank'],
+            'pct': d['pct'],
+            'eval': d['eval'],
+            'avg': desc['mean'],
+            'q1': desc['25%'],
+            'q2': desc['50%'],
+            'q3': desc['75%'],
             'bins': bins,
-            'pm': pm_all,
-            'kde': kde_all,
-        }
-
-
-    def get_data(self, **kwargs):
-        return json.dumps({
-            'table': self._table_data,
-            'graph_data': self._graph_data,
+            'counts': counts,
+            'kde': norm_kde,
         })
+        async_to_sync(self.channel_layer.send)(
+            self.channel_name, {
+                'type': 'ar.dynamic',
+                'text': data
+            }
+        )
 
-def get_prob_mass(s, bins):
-    return np.histogram(s, bins)[0] / len(s)
+# def get_prob_mass(s, bins):
+#     return np.histogram(s, bins)[0] / len(s)
 
 def get_norm_kde(s, bins):
     kernel = gaussian_kde(s)
     kde = kernel(bins)
-    return kde / kde.sum()
+    return list(kde / kde.sum())

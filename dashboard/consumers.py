@@ -1,11 +1,10 @@
-# generate a websocket for data to display
-# from 'display/tasks.py' to 'display/index.html'
+from .contents.ar_panel import *
+from .contents.fa_ts import *
+from .models import WebsocketClient
+from channels.generic.websocket import WebsocketConsumer
 
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.generic.websocket import WebsocketConsumer
-from .tasks import *
-from .models import WebsocketClient
+
 
 class StkrptArConsumer(WebsocketConsumer):
 
@@ -18,15 +17,23 @@ class StkrptArConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         inputs = json.loads(text_data)
-        stock_code, oc, ar_nm = (
-            inputs['stockCode'],
-            inputs['oc'],
-            inputs['arName']
-        )
-        if oc and ar_nm:
-            get_stkrpt_ar_data(stock_code, oc, ar_nm, self.channel_name)
+        request_type = inputs.pop('requestType')
 
-    def ar_data(self, event):
+        stock_code = inputs.pop('stockCode', None)
+        oc = inputs.pop('oc', None)
+        ar_nm = inputs.pop('arName', None)
+        tp = inputs.pop('tp', None)
+
+        arp = ArPanel(ar_nm, oc, stock_code, self.channel_name)
+        if request_type == 'static':
+            arp.generate_static_data()
+        elif request_type == 'dynamic':
+            arp.generate_dynamic_data(tp)
+
+    def ar_static(self, event):
+        self.send(event['text'])
+
+    def ar_dynamic(self, event):
         self.send(event['text'])
 
 
@@ -46,7 +53,9 @@ class StkrptFaConsumer(WebsocketConsumer):
             inputs['oc'],
             inputs['faName']
         )
-        get_stkrpt_fa_data(stock_code, oc, acnt_nm, self.channel_name)
+        fa_ts = FaTs(acnt_nm, oc, stock_code, self.channel_name)
+        fa_ts.generate_data()
+        # get_stkrpt_fa_data(stock_code, oc, acnt_nm, self.channel_name)
 
     def fa_data(self, event):
         self.send(event['text'])

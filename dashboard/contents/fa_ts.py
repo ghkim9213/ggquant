@@ -1,108 +1,47 @@
+from .data.fa import FaSeries
+from .data.tools import *
+from asgiref.sync import sync_to_async, async_to_sync
+from channels.layers import get_channel_layer
 from ggdb.models import Corp, FsAccount, FsDetail
 
 import json
 import pandas as pd
 
 class FaTs:
-    def __init__(self, acnt_nm, oc, stock_code):
-        self.oc = oc
-        corp = Corp.objects.get(stockCode=stock_code)
-        fltr = {
-            'account__accountNm': acnt_nm,
-            'fs__corp': corp,
-            'fs__type__oc': oc,
-        }
+    def __init__(self, acnt_nm, oc, stock_code, channel_name):
+        self.fas = FaSeries(acnt_nm=acnt_nm, oc=oc)
+        self.stock_code = stock_code
+        self.channel_layer = get_channel_layer()
+        self.channel_name = channel_name
 
-        FIELDS = {
-            'fs__fqe': 'fqe',
-            'fs__by': 'by',
-            'fs__bq': 'bq',
-            'fs__type__name': 'ft',
-            'value': 'value'
-        }
-        qs = FsDetail.objects.filter(**fltr)
-        if not qs.exists():
-            raise KeyError('no data')
+    def generate_data(self):
+        fas_info = json.dumps({
+            'oc': self.fas.oc,
+            'nm': self.fas.acnt_nm,
+            'lk': self.fas.label_kor,
+            'path': self.fas.path,
+        })
+        ts = self.fas.time_series(self.stock_code)
+        if len(ts) > 0:
+            tmin = ts.fqe.min()
+            tmax = ts.fqe.max()
+            ts = fill_tgap(ts)
+            ts['growth'] = (ts.value / ts.value.shift(1) - 1) * 100
 
-        df = pd.DataFrame.from_records(qs.values(*FIELDS.keys())).rename(columns=FIELDS)
-
-        ft_prefix_uniq = df.ft.str[:-1].unique()
-        if ('IS' in ft_prefix_uniq) and ('CIS' in ft_prefix_uniq):
-            df = df.loc[df.ft.str[:-1] != 'CIS']
-
-        ft_count = df.ft.value_counts().to_dict()
-        df['ft_order'] = df.ft.replace(ft_count)
-        df = df.sort_values(
-            ['fqe', 'ft_order'],
-            ascending = [False, False]
-        ).drop_duplicates('fqe')
-        del df['ft_order']
-
-        df.fqe = pd.to_datetime(df.fqe)
-
-        df = df.sort_values('fqe')
-        mgap = df.fqe.dt.month - corp.fye
-        ydiff =  -((mgap <= 0) & (corp.fye != 12)).astype(int)
-        df.by = df.fqe.dt.year + ydiff
-        df.bq = mgap.replace({-9:3, -6:6, -3:9, 0:12}) // 3
-
-        self.fa = FsAccount.objects.filter(
-            accountNm = acnt_nm,
-            type__oc = oc,
-        ).first()
-        is_not_flow = self.fa.type.type == 'BS'
-        if is_not_flow:
-            self.ts = df[['fqe','value']]
+            chart_data = {
+                't': ts.fqe.to_json(orient='records'),
+                'y_val': ts.value.to_json(orient='records'),
+                'y_growth': ts.growth.to_json(orient='records'),
+            }
         else:
-            idx2fqe = (
-                df[['by','bq','fqe']]
-                .set_index(['by','bq'])
-                .fqe.to_dict()
-            )
-            dfq = (
-                df[['by','bq','value']]
-                .set_index(['by','bq'])
-                .value.unstack('bq')
-            )
-            dfq[4] = dfq[4] - (dfq[1]+dfq[2]+dfq[3])
-            dfq = dfq.stack().rename('value').to_frame()
-            dfq['fqe'] = [idx2fqe[idx] for idx in dfq.index]
-            self.ts = dfq.reset_index()[['fqe','value']]
+            chart_data = json.dumps(None)
 
-        self._fa_info = None
-        self._graph_data = None
-
-    def update_fa_info(self):
-        self._fa_info = {
-            'oc': self.oc,
-            'nm': self.fa.accountNm,
-            'lk': self.fa.labelKor,
-            'path': ' / '.join([
-                fa.labelKor.replace('[abstract]','').strip()
-                for fa in get_fa_path(self.fa, [])
-            ])
-        }
-
-    def update_graph_data(self):
-        ts = self.ts.copy()
-        ts['growth'] = (ts.value / ts.value.shift(1) - 1) * 100
-        is_big_gap = ts.fqe - ts.fqe.shift(1) > '95 days'
-        ts.growth[is_big_gap] = None
-        self._graph_data = {
-            'x': ts.fqe.to_json(orient='records'),
-            'y_value': ts.value.to_json(orient='records'),
-            'y_growth': ts.growth.to_json(orient='records')
-        }
-
-    def get_data(self):
-        return json.dumps({
-            'fa_info': self._fa_info,
-            'graph_data': self._graph_data,
+        data = json.dumps({
+            'fas_info': fas_info,
+            'chart_data': chart_data,
         })
 
-def get_fa_path(fa, container):
-    if fa.parent:
-        new_container = [fa.parent] + container
-        return get_fa_path(fa.parent, new_container)
-    else:
-        return container
+        async_to_sync(self.channel_layer.send)(self.channel_name, {
+            'type': 'fa.data',
+            'text': data,
+        })
