@@ -1,32 +1,32 @@
 from .fa import FaSeries
 from .tools import *
-from ggdb.models import Corp, FsAccount, FsDetail
+from ggdb.models import Corp
+from ggdb.models import FsAccountLite
 
 import numpy as np
 import pandas as pd
 import re
 
 class ArSeries:
-    def __init__(self, ar_syntax, change_in, oc):
-        # self.mkt = Corp.objects.get(stockCode=stock_code).market
-        self.arg_all = re.findall('`(.*?)`', ar_syntax)
-        strargs = str(self.arg_all)[1:-1].replace("'","")
-        strfunc = f"lambda {strargs}:" + ar_syntax.replace("`","")
+    def __init__(self, operation, change_in, items):
+        letter_all = re.findall('[^\/\+\(\)\*\-]', operation)
+        letter_uniq = list(set(letter_all))
+        strfunc = f"lambda {','.join(letter_uniq)}: {operation}"
         self.operation = eval(strfunc)
-        self.oc = oc
         self.change_in = change_in
+        self.items = items
 
     def time_series(self, stock_code):
         s_all = []
-        for acnt_nm in self.arg_all:
-            s = FaSeries(acnt_nm, self.oc).time_series(stock_code)
+        for item in self.items:
+            s = FaSeries(item['nm'], item['oc']).time_series(stock_code)
             if len(s) > 0:
-                s_all.append(s.set_index('fqe').rename(columns={'value':acnt_nm}))
+                s_all.append(s.set_index('fqe').rename(columns={'value':item['letter']}))
             else:
                 return pd.DataFrame()
         df = pd.concat(s_all, axis=1)
         ts = (
-            self.operation(*[df[c] for c in self.arg_all])
+            self.operation(*[df[item['letter']] for item in self.items])
             .rename('value')
             .replace([-np.inf,np.inf],np.nan)
             .dropna()
@@ -48,14 +48,14 @@ class ArSeries:
             cs_all = []
             for ttp in [prev_tp, tp]:
                 df = pd.concat([(
-                    FaSeries(acnt_nm, self.oc)
+                    FaSeries(item['nm'], item['oc'])
                     .cross_section(mkt, ttp)
                     .set_index(['stock_code','corp_name','fqe'])
-                    .rename(columns={'value':acnt_nm})
-                    ) for acnt_nm in self.arg_all
+                    .rename(columns={'value':item['letter']})
+                    ) for item in self.items
                 ], axis=1)
                 cs_all.append(
-                    self.operation(*[df[c] for c in self.arg_all])
+                    self.operation(*[df[item['letter']] for item in self.items])
                     .rename('value')
                     .replace([-np.inf,np.inf],np.nan)
                     .dropna()
@@ -74,14 +74,14 @@ class ArSeries:
             )
         else:
             df = pd.concat([(
-                FaSeries(acnt_nm, self.oc)
+                FaSeries(item['nm'], item['oc'])
                 .cross_section(mkt, tp)
                 .set_index(['stock_code','corp_name','fqe'])
-                .rename(columns={'value':acnt_nm})
-                ) for acnt_nm in self.arg_all
+                .rename(columns={'value':item['letter']})
+                ) for item in self.items
             ], axis=1)
             cs = (
-                self.operation(*[df[c] for c in self.arg_all])
+                self.operation(*[df[item['letter']] for item in self.items])
                 .rename('value')
                 .replace([-np.inf,np.inf],np.nan)
                 .dropna()

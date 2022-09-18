@@ -18,11 +18,13 @@ class ArPanel:
         self.stock_code = stock_code
         self.market = Corp.objects.get(stockCode=stock_code).market
 
-        ar = AccountRatio.objects.get(name=ar_nm)
+        ar_all = AccountRatio.objects.filter(name=ar_nm)
+        ar = [ar for ar in ar_all if ar.oc == oc][0]
+        r = ar.to_request()
         self.ars = ArSeries(
-            ar_syntax = ar.syntax,
-            change_in = ar.changeIn,
-            oc = oc
+            operation = r['operation'],
+            change_in = r['changeIn'],
+            items = r['items'],
         )
 
     def generate_static_data(self):
@@ -125,9 +127,6 @@ class ArPanel:
                 'text': data
             }
         )
-
-# def get_prob_mass(s, bins):
-#     return np.histogram(s, bins)[0] / len(s)
 
 def get_norm_kde(s, bins):
     kernel = gaussian_kde(s)

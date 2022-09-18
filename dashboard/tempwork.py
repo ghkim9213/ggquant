@@ -1,16 +1,13 @@
 from .contents.data.ar import *
-from .contents.data.tools import *
 from ggdb.models import AccountRatio
 
-ar = AccountRatio.objects.get(name='ChangeInAsset')
-self = ArSeries(
-    ar_syntax = ar.syntax,
-    change_in = ar.changeIn,
-    oc = 'CFS'
-)
-stock_code = '263750'
-ts = self.time_series(stock_code)
+ar = AccountRatio.objects.first()
+r = ar.to_request()
+operation = r['operation']
+change_in = r['changeIn']
+items = r['items']
 
+ars = ArSeries(operation, change_in, items)
+ts = ars.time_series('005930')
 tp = ts.fqe.to_list()[-1]
-
-cs = self.cross_section('KOSDAQ', tp)
+ars.cross_section('KOSPI', tp)

@@ -1,3 +1,4 @@
+from dashboard.contents.data.ar import *
 from django.db.models import Max, Avg
 from functools import reduce
 from ggdb.batchtools.account_ratio import *
@@ -31,19 +32,21 @@ class StkrptViewManager:
         # larv_all = []
         # oc='CFS'
         # for ar in ar_all:
-        #     arts = ar.values.filter(corp=self.corp, oc=oc)
-        #     if not arts.exists():
-        #         dummy_larv = AccountRatioValue(
-        #             ar = ar,
-        #             corp = self.corp,
-        #             fqe = None,
-        #             oc = None,
-        #             value = None,
-        #         )
-        #         larv_all.append(dummy_larv)
-        #         continue
+        #     ars = ArSeries(
+        #         ar_syntax = ar.syntax,
+        #         change_in = ar.change_in,
+        #         oc = 'CFS'
+        #     )
+        #     ts = ars.time_series(self.corp.stockCode)
+        #     latest = ts.fqe.max()
+        #     # v =
+        #     if len(ts) == 0:
+        #         larv_all.append({
         #
-        #     larv = arts.latest()
+        #         })
+        #         continue
+
+            # larv = arts.latest()
         #     if not larv.value:
         #         larv.fqe = None
         #         larv_all.append(larv)
@@ -109,7 +112,8 @@ class StkrptViewManager:
             'fa_all': json.dumps(fa_all)
         }
 
-
+    def custom_ar(self):
+        pass
 
     # def recent_history(self):
     #     today = datetime.datetime.today().date()
