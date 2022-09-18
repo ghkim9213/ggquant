@@ -223,8 +223,10 @@
     </div>
     <canvas id="faChart"></canvas>
   </div>
+
+
   <div class="mb-5" id="customArViewer">
-    <h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 나의 재무비율 만들기</h5>
+    {% include './stkrpt_ar_custom_ar.html' %}
   </div>
 </div>
 
@@ -1092,17 +1094,10 @@
   };
 
   $(document).ready(function() {
-    presets = ['Equity', 'ProfitLoss'];
+    presets = ['EquityAttributableToOwnersOfParent', 'ProfitLoss'];
     for (faName of presets) {
       queryFaData(stockCode, 'CFS', faName)
     };
-
-    // new Promise(function(resolve) {
-    //   queryFaData(stockCode, 'CFS', 'Equity');
-    //   resolve();
-    // }).then(function() {
-    //   queryFaData(stockCode, 'CFS', 'ProfitLoss')
-    // });
   });
 
 

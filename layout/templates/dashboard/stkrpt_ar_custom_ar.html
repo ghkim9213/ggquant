@@ -1,0 +1,513 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'node_modules/katex/dist/katex.min.css' %}">
+<style>
+  #customArWrapper {
+    border: 1px solid;
+    border-radius: .25rem;
+    border-color: #dee2e6;
+  }
+
+  #carItemControlWrapper {
+    max-height: 250px;
+    border: 1px solid;
+    border-radius: .25rem;
+    border-color: #dee2e6;
+    background: #FFFFFF;
+  }
+
+  #customArResult {
+    position: relative;
+  }
+
+  #carItemSearchResult {
+    position: absolute;
+    display: none;
+    width: 95%;
+    height: 100%;
+    background: #FFFFFF;
+    border: 1px solid;
+    border-radius: .25rem;
+    border-color: #dee2e6;
+    z-index: 1;
+  }
+
+  #carResultOverlay {
+    position: absolute;
+    display: none;
+    width: 95%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1;
+  }
+
+  #carResultSpanner {
+    position: absolute;
+    display: none;
+    width: 95%;
+    height: 100%;
+    top: 42.5%;
+    text-align: center;
+    z-index: 2;
+  }
+</style>
+<!-- title -->
+<h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율 계산기</h5>
+
+<!-- contents -->
+<div class="bg-light p-3" id="customArWrapper">
+  <!-- def panel -->
+  <div class="formbox bg-white position-relative mb-3" id="carTexWrapper" style="height: 120px;">
+    <p class="position-absolute top-50 start-50 translate-middle" id="carTex"></p>
+  </div>
+  <div class="row">
+    <div class="col-6" id="customArForm">
+      <div class="form-check form-switch float-end">
+        <input type="checkbox" class="form-check-input" id="autoUpdateSwitch" checked>
+        <label for="autoUpdateSwitch" class="form-check-label">자동 업데이트</label>
+      </div>
+      <div class="mb-3">
+        <label for="carLabelKor" class="form-label">재무비율명 (한글)</label>
+        <input type="text" class="form-control" name="carLabelKor" id="carLabelKor">
+      </div>
+      <div class="mb-3">
+        <label for="carName" class="form-label">재무비율명 (영문)</label>
+        <input type="text" class="form-control" name="carName" id="carName">
+        <div class="form-text" id="carNameHelp">재무비율의 영문이름을 입력해주세요.</div>
+      </div>
+      <div class="mb-3">
+        <label for="customArItem" class="form-label">계정선택</label>
+        <div class="table-responsive" id="carItemControlWrapper">
+          <table class="table table-hover" id="carItemControl" style="table-layout: fixed;">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 10%"></th>
+                <th scope="col" style="width: 10%">id</th>
+                <th scope="col" style="width: 10%">구분</th>
+                <th scope="col" style="width: 40%">계정명</th>
+                <th scope="col" style="width: 30%">상태</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr id="carItemSearchRow">
+                <th scope="row">
+                  <button class="btn btn-outline-primary" id="activatecarItemSearchBtn" onclick="carItemSearch()">
+                    <i class="bi bi-plus-lg"></i>
+                  </button>
+                </th>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="mb-3">
+        <div class="btn-group mx-auto float-end mb-3" role="group">
+          <button class="btn btn-outline-secondary" syntax="+" onclick="addToSyntax(this)"><i class="bi bi-plus-lg"></i></button>
+          <button class="btn btn-outline-secondary" syntax="-" onclick="addToSyntax(this)"><i class="bi bi-dash-lg"></i></button>
+          <button class="btn btn-outline-secondary" syntax="*" onclick="addToSyntax(this)"><i class="bi bi-x-lg"></i></button>
+          <button class="btn btn-outline-secondary" syntax="/" onclick="addToSyntax(this)"><i class="bi bi-slash-lg"></i></button>
+          <button class="btn btn-outline-secondary" syntax="()" onclick="addToSyntax(this)">()</button>
+          <input type="checkbox" class="btn-check" id="btn-check-outlined" autocomplete="off">
+          <label class="btn btn-outline-primary" for="btn-check-outlined">변동율</label>
+        </div>
+        <label for="carSyntax" class="form-label">수식 정의</label>
+        <textarea name="carSyntax" id="carSyntax" cols="30" rows="5" class="form-control"></textarea>
+      </div>
+      <button class="btn btn-primary float-end" onclick="queryCarStatic()">조회하기</button>
+    </div>
+
+    <div class="col-6" id="customArResult">
+      <!-- search item -->
+      <div class="overflow-auto" id="carItemSearchResult">
+        <button class="btn btn-close m-3 sticky-top float-end" onclick="deactivateCarItemSearch()"></button>
+        <div class="d-flex flex-row">
+          <p class="form-text m-3 fw-bold">매치된 계정</p>
+          <div class="m-3" id="carItemMatched">
+            <span class="form-text m-3">계정명을 입력하세요</span>
+          </div>
+        </div>
+        <div>
+          <p class="form-text m-3 fw-bold">조회 가능 계정 목록</p>
+          <div class="m-3" id="carItemFiltered-bs">
+            <p class="form-text">재무상태표</p>
+          </div>
+          <div class="m-3" id="carItemFiltered-pl">
+            <p class="form-text">손익계산서</p>
+          </div>
+          <div class="m-3" id="carItemFiltered-cf">
+            <p class="form-text">현금흐름표</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- overlay -->
+      <div id="carResultOverlay"></div>
+      <div id="carResultSpanner">
+        <div class="spinner-grow text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <p class="text-light fw-bold">데이터베이스 조회중</p>
+      </div>
+      <!-- result Fail-->
+      <div class="formbox" id="carResultFail" style="height: 100%;">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="{% static 'node_modules/katex/dist/katex.min.js'%}"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.15.3/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous"
+    onload="renderMathInElement(document.body);"></script>
+<script>
+  // jquery-katex test
+  var carWs = new WebSocket(
+    `ws://${window.location.host}/ws/dashboard/stkrpt/car`
+  );
+
+  var customAr = {
+    nm: null,
+    lk: null,
+    items: [], // id, oc, nm, status, ...
+    syntax: null,
+    get tex() {
+      let texNmPart = `\\text{${this.lk}}`;
+      let texDefPart = syntaxToKatex(this.syntax);
+      for (item of this.items) {
+        texDefPart = texDefPart.replaceAll(item.id, `\\text{${item.lk}}`);
+      };
+      return texNmPart + '=' + texDefPart
+    },
+    get backendSyntax() {
+      let backendSyntax = this.syntax;
+      for (item of this.items) {
+        backendSyntax = backendSyntax.replaceAll(item.id, `\`${item.nm}\``)
+      };
+      return backendSyntax
+    }
+  };
+
+  const faAll = JSON.parse("{{ fa_viewer.fa_all | escapejs }}");
+  const carItemIdOrder = [
+    'x', 'y', 'z', 'w',
+    'v', 'u', 't', 's',
+    'r', 'q', 'p', 'n',
+    'm', 'k', 'j', 'i',
+  ];
+  faAll.sort(koreanAscending);
+
+  function koreanAscending(a, b) {
+    return (a.lk < b.lk)?-1:(a.lk == b.lk)?0:1;
+  };
+
+  $('#carLabelKor').keyup(function() {
+    customAr.lk = $(this).val();
+    let texPos = document.getElementById('carTex')
+    katex.render(customAr.tex, texPos, {throwOnErro: false, displayMode: true});
+  });
+  $('#carName').keyup(function() {
+    customAr.nm = $(this).val();
+  });
+  $('#carSyntax').keyup(function() {
+    customAr.syntax = $(this).val();
+    let texPos = document.getElementById('carTex');
+    katex.render(customAr.tex, texPos, {throwOnErro: false, displayMode: true});
+  });
+
+  function syntaxToKatex(syntax){
+    if ((syntax !== null) && (syntax !== '')) {
+      var pos = -1, ch;
+      function nextChar(){
+        ch = (++pos < syntax.length) ? syntax.charAt(pos) : -1;
+      }
+      function eat(charToEat) {
+        while (ch == ' ') nextChar();
+        if (ch == charToEat) {
+          nextChar();
+          return true;
+        }
+        return false;
+      }
+      function parse(){
+        nextChar();
+        var x = parseExpression();
+        if (pos < syntax.length) throw `Unexpected: ${ch}`
+        return x;
+      }
+      function parseExpression() {
+        var x = parseTerm();
+        for (;;) {
+          if      (eat('+')) x = `${x} + ${parseTerm()}` // addition
+          else if (eat('-')) x = `${x} - ${parseTerm()}` // subtraction
+          else return x;
+        }
+      }
+      function parseTerm() {
+        var x = parseFactor();
+        for (;;) {
+          if      (eat('*')) x=`${x} \\cdot ${parseTerm()}`; // multiplication
+          else if (eat('/')) x= `\\frac{${x}}{${parseTerm()}}`; // division
+          else return x;
+        }
+      }
+      function parseFactor() {
+        if (eat('+')) return `${parseFactor()}`; // unary plus
+        if (eat('-')) return `-${parseFactor()}`; // unary minus
+
+        var x;
+        var startPos = pos;
+        if (eat('(')) { // parentheses
+          x = `{(${parseExpression()})}`
+          eat(')');
+        } else if ((ch >= '0' && ch <= '9') || ch == '.') { // numbers
+          while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
+          x = syntax.substring(startPos, pos);
+        } else if (ch >= 'a' && ch <= 'z') { // variables
+          while (ch >= 'a' && ch <= 'z') nextChar();
+          x= syntax.substring(startPos, pos);
+          if(x.length>1){
+            x = `\\${x} {${parseFactor()}}`;
+          }
+        } else {
+          throw `Unexpected: ${ch}`
+        }
+        if (eat('^')) x = `${x} ^ {${parseFactor()}}` //superscript
+        if(eat('_')) x = `${x}_{${parseFactor()}}`;
+
+        return x;
+      }
+      return `${parse()}`;
+    } else {
+      return '';
+    }
+  }
+  // search item
+  function carItemSearch() {
+    activateCarSearch()
+    .then(() => searchCarItem(faAll))
+  };
+  function activateCarSearch() {
+    return new Promise(function(resolve) {
+      let searchRow = $('#carItemSearchRow')
+      searchRow.find('td').remove();
+      searchRow.append(`
+      <td colspan="4">
+        <div class="d-flex flex-row">
+          <div class="col-2 mx-1">
+            <select class="form-select" id="carItemOcSelected">
+              <option value="CFS" selected>연결</option>
+              <option value="OFS">별도</option>
+            </select>
+          </div>
+          <div class="col-10 mx-1">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input class="form-control" type="text" id="carItemLkSearched" placeholder="당기순이익(손실)">
+            </div>
+          </div>
+        </div>
+      </td>
+      `);
+      $('#carItemSearchResult').css('display', 'block');
+      resolve();
+    });
+  };
+  function deactivateCarItemSearch() {
+    $('#carItemSearchResult').css('display', 'none');
+    $('#carItemSearchRow td').remove();
+    $('#carItemSearchRow').append(`
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    `)
+  };
+  function searchCarItem(faAll) {
+    $('#carItemOcSelected').change(function() {
+      let oc = $(this).val();
+      $('#carItemLkSearched').keyup(function() {
+        $('#carItemFiltered-bs').find('span').remove();
+        $('#carItemFiltered-pl').find('span').remove();
+        $('#carItemFiltered-cf').find('span').remove();
+        let fltrd = faAll.filter( x =>
+          (x.oc == oc)
+          && (x.lk.includes($(this).val()))
+        );
+        for (f of fltrd) {
+          $(`#carItemFiltered-${f.ft_div.toLowerCase()}`)
+          .append(`
+            <span class="badge rounded-pill bg-secondary" type="button" onclick="checkItem('${stockCode}', '${f.oc}', '${f.nm}', '${f.lk}')">
+              ${f.lk}
+            </span>
+          `);
+        };
+
+        $('#carItemMatched').find('span').remove();
+        var matched = faAll.find( x =>
+          (x.oc == oc)
+          && (x.lk == $(this).val())
+        );
+        if (matched === undefined) {
+          $('#carItemMatched').append(`
+            <span class="form-text">매치된 계정이 없습니다. 계정명을 정확히 입력해주세요.</span>
+          `)
+        } else {
+          $('#carItemMatched').append(`
+            <span class="badge rounded-pill bg-success" type="button" onclick="checkItem('${stockCode}', '${matched.oc}', '${matched.nm}', '${matched.lk}')">
+              ${matched.lk}
+            </span>
+          `)
+        };
+      }).trigger('keyup');
+    }).trigger('change');
+  };
+
+  function checkItem(stockCode, oc, nm, lk) {
+    addCarItemControlRow(oc, nm, lk)
+      .then(() => sendCheckItemInputs(oc, nm))
+      .then(() => receiveCheckItemResult())
+      .then(checkItemResult => updateCustomArItem(oc, nm, lk, checkItemResult))
+      .then(() => updateCarItemControlRow(oc, nm))
+  };
+  function addCarItemControlRow(oc, nm, lk) {
+    return new Promise(function(resolve) {
+      let itemId = carItemIdOrder.shift();
+      $('#carItemControl tbody').append(`
+        <tr id="carItemControlRow-${oc}-${nm}" oc="${oc}" nm="${nm}" role="button" syntax="${itemId}" onclick="addToSyntax(this)">
+          <th scope="row">
+            <button class="btn btn-close" onclick="removeCarItemControlRow(this)"></button>
+          </th>
+          <td class="result-cell result-cell-id">
+            ${itemId}
+          </td>
+          <td class="result-cell result-cell-oc">
+            ${(oc === 'CFS') ? '연결':'별도'}
+          </td>
+          <td class="result-cell result-cell-lk text-truncate">
+            ${lk}
+          </td>
+          <td class="result-cell result-cell-status">
+            <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
+          </td>
+        </tr>
+      `);
+      resolve();
+    });
+  };
+  function removeCarItemControlRow(e) {
+    let row = $(e).closest('tr');
+    let itemId = row.find('.result-cell-id').html().trim();
+    let oc = row.attr('oc');
+    let nm = row.attr('nm');
+    customAr.items = customAr.items.filter(x => (x.oc !== oc) || (x.nm !== nm));
+    carItemIdOrder.unshift(itemId);
+    row.remove();
+  };
+  function sendCheckItemInputs(oc, nm) {
+    return new Promise(function(resolve) {
+      carWs.send(JSON.stringify({
+        requestType: 'checkItem',
+        stockCode: '{{ corp.stockCode }}',
+        oc: oc,
+        itemName: nm
+      }));
+      resolve();
+    });
+  };
+  function receiveCheckItemResult() {
+    return new Promise(function(resolve) {
+      carWs.onmessage = function(e) {
+        checkItemResult = JSON.parse(e.data);
+        resolve(checkItemResult);
+      };
+    });
+  };
+  function updateCustomArItem(oc, nm, lk, checkItemResult) {
+    return new Promise(function(resolve) {
+      let itemId = $(`#carItemControlRow-${oc}-${nm}`).find('.result-cell-id').html().trim();
+      customAr.items.push({
+        id: itemId,
+        oc: oc,
+        nm: nm,
+        lk: lk,
+        status: checkItemResult,
+      });
+      resolve();
+    });
+  };
+  function updateCarItemControlRow(oc, nm) {
+    let item = customAr.items.find(x => (x.oc === oc) && (x.nm === nm));
+    let statusTxt = (item.status.ts === false) ? '데이터 없음': (
+      (item.status.cs === true) ? '빠른 조회 가능': '조회 가능'
+    );
+    let txtColor = (statusTxt === '데이터 없음') ? 'text-danger': (
+      (statusTxt === '빠른 조회 가능') ? 'text-success': 'text-dark'
+    );
+    $(`#carItemControlRow-${oc}-${nm}`).find('.result-cell-status').remove();
+    $(`#carItemControlRow-${oc}-${nm}`).append(`
+      <td class=${txtColor}>${statusTxt}</td>
+    `);
+  };
+
+  function addToSyntax(e) {
+    let txtarea = document.getElementById('carSyntax');
+    let scrollPos = txtarea.scrollTop;
+    let caretPos = txtarea.selectionStart;
+
+    let syntaxFront = (txtarea.value).substring(0, caretPos);
+    let syntaxBack = (txtarea.value).substring(txtarea.selectionEnd, txtarea.value.length);
+    let txtToAdd = $(e).attr('syntax');
+    txtarea.value = syntaxFront + txtToAdd + syntaxBack;
+    caretPos = caretPos + txtToAdd.length;
+    if (txtToAdd === '()') {
+      caretPos = caretPos - 1
+    };
+    txtarea.selectionStart = caretPos;
+    txtarea.selectionEnd = caretPos;
+    txtarea.focus();
+    txtarea.scrollTop = scrollPos;
+    $(txtarea).keyup();
+  };
+
+  setTimeout(checkItem, 2000, '{{ corp.stockCode }}', 'CFS', 'EquityAttributableToOwnersOfParent', '지배기업의 소유주에게 귀속되는 자본');
+  setTimeout(checkItem, 4000, '{{ corp.stockCode }}', 'CFS', 'ProfitLoss', '당기순이익(손실)');
+  setTimeout(function() {
+    $('#carLabelKor').val('자기자본이익률 (ROE)');
+    $('#carLabelKor').keyup();
+    $('#carName').val('return on equity');
+    $('#carName').keyup();
+    $('#carSyntax').val('y/x');
+    $('#carSyntax').keyup();
+  }, 6000)
+
+  function queryCarStatic() {
+    deactivateCarItemSearch();
+    activateCarSpinner();
+    // resetCarAll()
+    // sendCarStaticInputs()
+    //   .then(() => receiveCarStaticData())
+    //   .then(() => updateCarStaticContents())
+    //   .then(() => viewCarSuccess())
+    //   .then(() => triggerFirstCarDynamic())
+    //   .catch(function(err) {
+    //     viewCarFail();
+    //   })
+  };
+  function activateCarSpinner() {
+    $('#carResultOverlay').css('display', 'block');
+    $('#carResultSpanner').css('display', 'block');
+  };
+  function sendCarStaticInputs() {
+    return new Promise(function(resolve) {
+      carWs.send(JSON.stringify({
+        'requestType': 'static',
+        'arSyntax': customAr.backendSyntax,
+        'changeIn': false,
+        'oc': null,
+      }))
+    });
+  };
+
+</script>

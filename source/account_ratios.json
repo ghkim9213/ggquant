@@ -1,54 +1,246 @@
 [
-    {"name": "CurrentRatio",
+    {"nm": "CurrentRatio",
+        "abbrev": null,
         "div": "안정성",
-        "labelKor": "유동비율",
-        "syntax": "`CurrentAssets`/`CurrentLiabilities`"},
-    {"name": "DebtToEquity",
+        "lk": "유동비율",
+        "operation": "x/y",
+        "syntax": "`CurrentAssets`/`CurrentLiabilities`",
+        "items": [
+          {"letter": "x", "nm": "CurrentAssets", "oc": "CFS"},
+          {"letter": "y", "nm": "CurrentLiabilities", "oc": "CFS"}
+        ]
+      },
+    {"nm": "DebtToEquity",
+        "abbrev": "D/E",
         "div": "안정성",
-        "labelKor": "부채자본비율 (D/E)",
-        "syntax": "`Liabilities`/`EquityAttributableToOwnersOfParent`"},
-    {"name": "DebtToAsset",
+        "lk": "부채자본비율",
+        "operation": "x/y",
+        "syntax": "`Liabilities`/`EquityAttributableToOwnersOfParent`",
+        "items": [
+          {"letter": "x", "nm": "Liabilities", "oc": "CFS"},
+          {"letter": "y", "nm": "EquityAttributableToOwnersOfParent", "oc": "CFS"}
+        ]
+      },
+    {"nm": "DebtToEquity",
+        "abbrev": "D/E",
         "div": "안정성",
-        "labelKor": "차입금의존도 (LTD/A)",
-        "syntax": "`LongTermBorrowingsGross`/`Assets`"},
-    {"name": "OperatingProfitMargin",
+        "lk": "부채자본비율",
+        "operation": "x/y",
+        "syntax": "`Liabilities`/`Equity`",
+        "items": [
+          {"letter": "x", "nm": "Liabilities", "oc": "OFS"},
+          {"letter": "y", "nm": "Equity", "oc": "OFS"}
+        ]
+      },
+    {"nm": "LongTermDebtToTotalAsset",
+        "abbrev": "LTD/A",
+        "div": "안정성",
+        "lk": "장기차입금총자산비율",
+        "operation": "x/y",
+        "syntax": "`LongTermBorrowingsGross`/`Assets`",
+        "items": [
+          {"letter": "x", "nm": "LongTermBorrowingsGross", "oc": "CFS"},
+          {"letter": "y", "nm": "Assets", "oc": "CFS"}
+        ]
+      },
+    {"nm": "LongTermDebtToTotalAsset",
+        "abbrev": "LTD/A",
+        "div": "안정성",
+        "lk": "장기차입금총자산비율",
+        "operation": "x/y",
+        "syntax": "`LongTermBorrowingsGross`/`Assets`",
+        "items": [
+          {"letter": "x", "nm": "LongTermBorrowingsGross", "oc": "OFS"},
+          {"letter": "y", "nm": "Assets", "oc": "OFS"}
+        ]
+      },
+    {"nm": "OperatingProfitMargin",
+        "abbrev": "OPM",
         "div": "수익성",
-        "labelKor": "영업이익률 (OPM)",
-        "syntax": "`OperatingIncomeLoss`/`Revenue`"},
-    {"name": "NetProfitMargin",
+        "lk": "영업이익률",
+        "operation": "x/y",
+        "syntax": "`OperatingIncomeLoss`/`Revenue`",
+        "items": [
+          {"letter": "x", "nm": "OperatingIncomeLoss", "oc": "CFS"},
+          {"letter": "y", "nm": "Revenue", "oc": "CFS"}
+        ]
+      },
+    {"nm": "OperatingProfitMargin",
+        "abbrev": "OPM",
         "div": "수익성",
-        "labelKor": "순이익률 (NPM)",
-        "syntax": "`ProfitLoss`/`Revenue`"},
-    {"name": "ReturnOnAsset",
+        "lk": "영업이익률",
+        "operation": "x/y",
+        "syntax": "`OperatingIncomeLoss`/`Revenue`",
+        "items": [
+          {"letter": "x", "nm": "OperatingIncomeLoss", "oc": "OFS"},
+          {"letter": "y", "nm": "Revenue", "oc": "OFS"}
+        ]
+      },
+    {"nm": "NetProfitMargin",
+        "abbrev": "NPM",
         "div": "수익성",
-        "labelKor": "총자산순이익률 (ROA)",
-        "syntax": "`ProfitLoss`/`Assets`"},
-    {"name": "ReturnOnEquity",
+        "lk": "순이익률 (NPM)",
+        "operation": "x/y",
+        "syntax": "`ProfitLoss`/`Revenue`",
+        "items": [
+          {"letter": "x", "nm": "ProfitLoss", "oc": "CFS"},
+          {"letter": "y", "nm": "Revenue", "oc": "CFS"}
+        ]
+      },
+    {"nm": "NetProfitMargin",
+        "abbrev": "NPM",
         "div": "수익성",
-        "labelKor": "자기자본이익률 (ROE)",
-        "syntax": "`ProfitLoss`/`EquityAttributableToOwnersOfParent`"},
-    {"name": "ChangeInRevenue",
-        "div": "성장성 및 활동성",
-        "labelKor": "매출액 변동율",
+        "lk": "순이익률 (NPM)",
+        "operation": "x/y",
+        "syntax": "`ProfitLoss`/`Revenue`",
+        "items": [
+          {"letter": "x", "nm": "ProfitLoss", "oc": "OFS"},
+          {"letter": "y", "nm": "Revenue", "oc": "OFS"}
+        ]
+      },
+    {"nm": "ReturnOnAsset",
+        "abbrev": "ROA",
+        "div": "수익성",
+        "lk": "총자산순이익률",
+        "operation": "x/y",
+        "syntax": "`ProfitLoss`/`Assets`",
+        "items": [
+          {"letter": "x", "nm": "ProfitLoss", "oc": "CFS"},
+          {"letter": "y", "nm": "Assets", "oc": "CFS"}
+        ]
+      },
+    {"nm": "ReturnOnAsset",
+        "abbrev": "ROA",
+        "div": "수익성",
+        "lk": "총자산순이익률",
+        "operation": "x/y",
+        "syntax": "`ProfitLoss`/`Assets`",
+        "items": [
+          {"letter": "x", "nm": "ProfitLoss", "oc": "OFS"},
+          {"letter": "y", "nm": "Assets", "oc": "OFS"}
+        ]
+      },
+    {"nm": "ReturnOnEquity",
+        "abbrev": "ROE",
+        "div": "수익성",
+        "lk": "자기자본이익률",
+        "operation": "x/y",
+        "syntax": "`ProfitLoss`/`EquityAttributableToOwnersOfParent`",
+        "items": [
+          {"letter": "x", "nm":"ProfitLoss", "oc": "CFS"},
+          {"letter": "y", "nm":"EquityAttributableToOwnersOfParent", "oc": "CFS"}
+        ]
+      },
+    {"nm": "ReturnOnEquity",
+        "abbrev": "ROE",
+        "div": "수익성",
+        "lk": "자기자본이익률",
+        "operation": "x/y",
+        "syntax": "`ProfitLoss`/`Equity`",
+        "items": [
+          {"letter": "x", "nm":"ProfitLoss", "oc": "OFS"},
+          {"letter": "y", "nm":"Equity", "oc": "OFS"}
+        ]
+      },
+    {"nm": "RevenueGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "매출액 성장률",
+        "operation": "x",
         "syntax": "`Revenue`",
+        "items": [
+          {"letter": "x", "nm": "Revenue", "oc": "CFS"}
+        ],
         "changeIn": true},
-    {"name": "ChangeInOperatingIncomeLoss",
-        "div": "성장성 및 활동성",
-        "labelKor": "영업이익 변동율",
+    {"nm": "RevenueGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "매출액 성장률",
+        "operation": "x",
+        "syntax": "`Revenue`",
+        "items": [
+          {"letter": "x", "nm": "Revenue", "oc": "OFS"}
+        ],
+        "changeIn": true},
+    {"nm": "OperatingIncomeLossGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "영업이익 성장률",
+        "operation": "x",
         "syntax": "`OperatingIncomeLoss`",
+        "items": [
+          {"letter": "x", "nm": "OperatingIncomeLoss", "oc": "CFS"}
+        ],
         "changeIn": true},
-    {"name": "ChangeInProfitLoss",
-        "div": "성장성 및 활동성",
-        "labelKor": "당기순이익(손실) 변동율",
+    {"nm": "OperatingIncomeLossGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "영업이익 성장률",
+        "operation": "x",
+        "syntax": "`OperatingIncomeLoss`",
+        "items": [
+          {"letter": "x", "nm": "OperatingIncomeLoss", "oc": "OFS"}
+        ],
+        "changeIn": true},
+    {"nm": "ProfitLossGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "당기순이익(손실) 성장률",
+        "operation": "x",
         "syntax": "`ProfitLoss`",
+        "items": [
+          {"letter": "x", "nm": "ProfitLoss", "oc": "CFS"}
+        ],
         "changeIn": true},
-    {"name": "ChangeInAsset",
-        "div": "성장성 및 활동성",
-        "labelKor": "총자산 변동율",
+    {"nm": "ProfitLossGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "당기순이익(손실) 성장률",
+        "operation": "x",
+        "syntax": "`ProfitLoss`",
+        "items": [
+          {"letter": "x", "nm": "ProfitLoss", "oc": "OFS"}
+        ],
+        "changeIn": true},
+    {"nm": "AssetGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "총자산 성장률",
+        "operation": "x",
         "syntax": "`Assets`",
+        "items": [
+          {"letter": "x", "nm": "Assets", "oc": "CFS"}
+        ],
         "changeIn": true},
-    {"name": "AssetTurnover",
-        "div": "성장성 및 활동성",
-        "labelKor": "자산 회전율",
-        "syntax": "`Revenue`/`Assets`"}
+    {"nm": "AssetGrowth",
+        "abbrev": null,
+        "div": "성장성",
+        "lk": "총자산 성장률",
+        "operation": "x",
+        "syntax": "`Assets`",
+        "items": [
+          {"letter": "x", "nm": "Assets", "oc": "OFS"}
+        ],
+        "changeIn": true},
+    {"nm": "AssetTurnover",
+        "abbrev": null,
+        "div": "활동성",
+        "lk": "자산 회전율",
+        "operation": "x/y",
+        "syntax": "`Revenue`/`Assets`",
+        "items": [
+            {"letter": "x", "nm": "Revenue", "oc": "CFS"},
+            {"letter": "y", "nm": "Assets", "oc": "CFS"}
+        ]
+      },
+    {"nm": "AssetTurnover",
+        "abbrev": null,
+        "div": "활동성",
+        "lk": "자산 회전율",
+        "syntax": "`Revenue`/`Assets`",
+        "items": [
+            {"nm": "Revenue", "oc": "OFS"},
+            {"nm": "Assets", "oc": "OFS"}
+        ]
+      }
 ]
