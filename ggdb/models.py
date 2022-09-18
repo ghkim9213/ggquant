@@ -264,6 +264,14 @@ class FsAccount(models.Model):
         ]
 
 
+class FsAccountLite(models.Model):
+    name = models.CharField(max_length=256)
+    oc = models.CharField(max_length=256)
+
+    class Meta:
+        db_table = 'fa_lite'
+
+
 class FsDetail(models.Model):
     fs = models.ForeignKey(
         Fs,
@@ -325,14 +333,59 @@ class FsDetailHistory(models.Model):
 
 class AccountRatio(models.Model):
     name = models.CharField(max_length=32)
+    abbrev = models.CharField(max_length=32, blank=True, null=True)
     div = models.CharField(max_length=32)
     labelKor = models.CharField(max_length=128)
     syntax = models.CharField(max_length=256)
     changeIn = models.BooleanField(default=False)
     updatedAt = models.DateField(auto_now=True)
+    items = models.ManyToManyField(FsAccountLite)
 
     class Meta:
         db_table = 'account_ratio'
+
+    @property
+    def oc(self):
+        oc_all = self.items.all().values_list('oc', flat=True)
+        if ('CFS' in oc_all) and ('OFS' in oc_all):
+            return 'mix'
+        elif ('CFS' in oc_all):
+            return 'CFS'
+        elif ('OFS' in oc_all):
+            return 'OFS'
+
+    def to_request(self):
+        LETTER_ORD = [
+            'x', 'y', 'z', 'w',
+            'v', 'u', 't', 's',
+            'r', 'q', 'p', 'n',
+            'm', 'k', 'j', 'i',
+        ]
+        item_all = self.items.all()
+        request_items = []
+        for pos, item in enumerate(item_all):
+            request_items.append({
+                'letter': LETTER_ORD[pos],
+                'nm': item.name,
+                'oc': item.oc
+            })
+        operation = self.syntax
+        for item in request_items:
+            operation = operation.replace(f"`{item['nm']}`", item['letter'])
+        return {
+            'nm': self.name,
+            'abbrev': self.abbrev,
+            'div': self.div,
+            'operation': operation,
+            'lk': self.labelKor,
+            'items': request_items,
+            'changeIn': self.changeIn,
+        }
+
+        # item_nm_all = re.findall('`(.*?)`', self.syntax)
+        # strargs = str(item_nm_all)[1:-1].replace("'","")
+        # strfunc = f"lambda {item_nm_all}:" + self.syntax.replace("`","")
+        return eval(strfunc)
 
     @property
     def arg_all(self):

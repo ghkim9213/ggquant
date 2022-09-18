@@ -1,10 +1,4 @@
-from dashboard.batchtools.fa_cs import *
-
-import datetime
-import time
+from .batchtools.fa_cs import *
 
 facsm = FaCrossSectionManager()
-# sample
-
-facsm.today = datetime.datetime.strptime('2022-09-09', '%Y-%m-%d')
-facsm.update()
+facsm.update(reset=True)

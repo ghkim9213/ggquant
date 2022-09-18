@@ -1,5 +1,5 @@
-from ggdb.models import AccountRatio
 from ggdb.models import Fs
+from ggdb.models import FsAccountLite
 from ggdb.models import FsDetail
 from dashboard.models import FaCrossSection
 from itertools import islice
@@ -12,27 +12,17 @@ class FaCrossSectionManager:
     def __init__(self):
         self.today = datetime.datetime.today()
 
-        OC_ALL = ['CFS', 'OFS']
+        # OC_ALL = ['CFS', 'OFS']
         MKT_ALL = ['KOSPI', 'KOSDAQ']
 
-        fa_all = []
-        ar_all = AccountRatio.objects.all()
-        for ar in ar_all:
-            for fa in ar.arg_all:
-                if fa not in fa_all:
-                    fa_all.append(fa)
-
-        tp_all = []
-        fqe_all = list(set(
+        fa_all = FsAccountLite.objects.all()
+        tp_all = list(set(
             Fs.objects.all()
             .values_list('fqe', flat=True)
         ))
-        tp_all += fqe_all
-
         self.comb_all = [(
-            acnt_nm, oc, mkt, tp
-            ) for acnt_nm in fa_all
-            for oc in OC_ALL
+            fa, mkt, tp
+            ) for fa in fa_all
             for mkt in MKT_ALL
             for tp in tp_all
         ]
@@ -49,32 +39,37 @@ class FaCrossSectionManager:
         print('setting up for update fa_cs...')
 
         facs_all = FaCrossSection.objects.all()
-        comb2facs = {(facs.name, facs.oc, facs.market, facs.tp): facs for facs in facs_all}
+        comb2facs = {(facs.fa, facs.market, facs.tp): facs for facs in facs_all}
 
         # loop keys
         if reset:
-            comb_all = sorted(self.comb_all, key=lambda comb: [comb[0], comb[1], comb[2], comb[3]])
+            comb_all = sorted(self.comb_all, key=lambda comb: [comb[0].id, comb[1], comb[2]])
         else:
             print('...detecting updates in fs_detail')
-            facs_nm_all = list(set([comb[0] for comb in comb2facs.keys()]))
+
+            # facs_nm_all = list(set([comb[0] for comb in comb2facs.keys()]))
+            fa_nm_all = list(set([comb[0].name for comb in comb2facs.keys()]))
             fd_created_all = FsDetail.objects.filter(
                 createdAt = self.today,
-                account__accountNm__in = facs_nm_all
+                account__accountNm__in = fa_nm_all
             ).select_related('account', 'fs', 'fs__corp')
             if fd_created_all.count() == 0:
                 print('...no update for fa_cs')
                 return None
             comb_all = []
             for fd_created in fd_created_all:
+                fa = FsAccountLite.objects.get(
+                    name = fd_created.account.accountNm,
+                    oc = fd_created.fs.type.oc,
+                )
                 comb = (
-                    fd_created.account.accountNm,
-                    fd_created.fs.type.oc,
+                    fa,
                     fd_created.fs.corp.market,
                     fd_created.fs.fqe
                 )
                 if comb not in comb_all:
                     comb_all.append(comb)
-            comb_all = sorted(comb_all, key=lambda comb: [comb[0], comb[1], comb[2], comb[3]])
+            comb_all = sorted(comb_all, key=lambda comb: [comb[0].id, comb[1], comb[2]])
 
         # loop indexes
         new_facs_id = facs_all.count() + 1
@@ -116,8 +111,8 @@ class FaCrossSectionManager:
                 break
 
             # get loop indexes
-            inner_idx = comb_all.pop(0) # inner loop index: [name, oc, market, tp]
-            outer_idx = list(inner_idx[:3]) # outer loop index: [name, oc, market]
+            inner_idx = comb_all.pop(0) # inner loop index: [fa, market, tp]
+            outer_idx = list(inner_idx[:2]) # outer loop index: [fa, market]
 
             if restarted:
                 restarted = False
@@ -128,9 +123,9 @@ class FaCrossSectionManager:
             if prev_outer_idx != outer_idx:
                 # query
                 fltr = {
-                    'account__accountNm': outer_idx[0],
-                    'fs__type__oc': outer_idx[1],
-                    'fs__corp__market': outer_idx[2],
+                    'account__accountNm': outer_idx[0].name,
+                    'fs__type__oc': outer_idx[0].oc,
+                    'fs__corp__market': outer_idx[1],
                 }
                 qs = (
                     FsDetail.objects.filter(**fltr)
@@ -169,7 +164,7 @@ class FaCrossSectionManager:
             facs = comb2facs.pop(tuple(inner_idx), None)
 
             # get m2m relationship for a facs
-            fqe_lte = pd.Timestamp(inner_idx[3])
+            fqe_lte = pd.Timestamp(inner_idx[2])
             fqe_gte = fqe_lte - pd.DateOffset(years=2)
             fdid_all = df.loc[(df.fqe >= fqe_gte) & (df.fqe <=fqe_lte)].id.to_list()
 
@@ -199,10 +194,9 @@ class FaCrossSectionManager:
                 # collect new facs
                 facs_created = FaCrossSection(
                     id = new_facs_id,
-                    name = inner_idx[0],
-                    oc = inner_idx[1],
-                    market = inner_idx[2],
-                    tp = inner_idx[3],
+                    fa = inner_idx[0],
+                    market = inner_idx[1],
+                    tp = inner_idx[2],
                 )
                 facs_created_all.append(facs_created)
 
