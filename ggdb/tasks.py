@@ -29,8 +29,8 @@ def batchs():
             fsm.update()
             fsm.update_details()
 
-        arm = AccountRatioManager()
-        arm.update()
+        # arm = AccountRatioManager()
+        # arm.update()
 
         facsm = FaCrossSectionManager()
         facsm.update()
