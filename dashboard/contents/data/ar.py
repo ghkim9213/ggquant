@@ -12,9 +12,12 @@ class ArSeries:
         letter_all = re.findall('[^\/\+\(\)\*\-]', operation)
         letter_uniq = list(set(letter_all))
         strfunc = f"lambda {','.join(letter_uniq)}: {operation}"
+        # self.input_order = letter_uniq
+        input_order = {v: i for i, v in enumerate(letter_uniq)}
+        print(input_order)
         self.operation = eval(strfunc)
         self.change_in = change_in
-        self.items = items
+        self.items = sorted(items, key=lambda x: input_order[x['letter']])
 
     def time_series(self, stock_code):
         s_all = []
