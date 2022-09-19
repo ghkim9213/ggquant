@@ -3,13 +3,6 @@ from pandas.tseries.offsets import MonthEnd
 import pandas as pd
 
 
-def get_fa_path(fa, container):
-    if fa.parent:
-        new_container = [fa.parent] + container
-        return get_fa_path(fa.parent, new_container)
-    else:
-        return container
-
 def prev_yq(pd_tp):
     y = pd_tp.year
     m = pd_tp.month

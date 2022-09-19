@@ -1,4 +1,5 @@
 from .batchtools.scrappers import download_opendart_file
+from .errors import *
 from django.db import models
 
 import pandas as pd
@@ -267,9 +268,84 @@ class FsAccount(models.Model):
 class FsAccountLite(models.Model):
     name = models.CharField(max_length=256)
     oc = models.CharField(max_length=256)
+    batch = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'fa_lite'
+
+    @property
+    def info(self):
+        fa = FsAccount.objects.filter(
+            accountNm = self.name,
+            type__oc = self.oc
+        ).first()
+        return {
+            'oc': self.oc,
+            'nm': self.name,
+            'lk': fa.labelKor,
+            'ft_div': fa.type.type,
+            'path': ' / '.join([
+                a.labelKor.replace('[abstract]', '').strip()
+                for a in get_fa_path(fa, [])
+            ])
+        }
+
+    def inspect(self):
+        fltr = {
+            'account__accountNm': self.name,
+            'fs__type__oc': self.oc
+        }
+        qs = (
+            FsDetail.objects.filter(**fltr)
+            .select_related('fs', 'fs__corp', 'fs__type')
+        )
+        return qs.exists()
+
+    def query_panel(self):
+        fltr = {
+            'account__accountNm': self.name,
+            'fs__type__oc': self.oc
+        }
+        qs = (
+            FsDetail.objects.filter(**fltr)
+            .select_related('fs', 'fs__corp', 'fs__type')
+        )
+        if not qs.exists():
+            return pd.DataFrame()
+        FIELDS = {
+            'id': 'id',
+            'fs__corp__market': 'market',
+            'fs__corp_id': 'corp_id',
+            'fs__fqe': 'fqe',
+            'fs__type__name': 'ft',
+            'value': 'value'
+        }
+        df = (
+            pd.DataFrame
+            .from_records(qs.values(*FIELDS.keys()))
+            .rename(columns=FIELDS)
+        )
+        df.fqe = pd.to_datetime(df.fqe)
+        # cleaning df
+        prefix_ftnm_uniq = [ftnm[:-1] for ftnm in df.ft.unique()]
+        if ('IS' in prefix_ftnm_uniq) and ('CIS' in prefix_ftnm_uniq):
+            df = df.loc[df.ft.str[:-1] != 'CIS']
+
+        ft_count = df.ft.value_counts().to_dict()
+        df['ft_order'] = df.ft.replace(ft_count)
+        df = df.sort_values(
+            ['corp_id', 'fqe', 'ft_order'],
+            ascending = [True, False, False]
+        ).drop_duplicates(['corp_id', 'fqe'])
+        del df['ft_order']
+        return df
+
+def get_fa_path(fa, container):
+    if fa.parent:
+        new_container = [fa.parent] + container
+        return get_fa_path(fa.parent, new_container)
+    else:
+        return container
 
 
 class FsDetail(models.Model):

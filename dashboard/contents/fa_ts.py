@@ -15,12 +15,7 @@ class FaTs:
         self.channel_name = channel_name
 
     def generate_data(self):
-        fas_info = json.dumps({
-            'oc': self.fas.oc,
-            'nm': self.fas.acnt_nm,
-            'lk': self.fas.label_kor,
-            'path': self.fas.path,
-        })
+        fa_info = json.dumps(self.fas.fa.info)
         ts = self.fas.time_series(self.stock_code)
         if len(ts) > 0:
             tmin = ts.fqe.min()
@@ -37,7 +32,7 @@ class FaTs:
             chart_data = json.dumps(None)
 
         data = json.dumps({
-            'fas_info': fas_info,
+            'fa_info': fa_info,
             'chart_data': chart_data,
         })
 

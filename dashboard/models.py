@@ -250,57 +250,12 @@ class FaCrossSection(models.Model):
         return df.loc[valid].reset_index(drop=True)
 
 
-# class FaCrossSection(models.Model):
-#     name = models.CharField(max_length=256)
-#     oc = models.CharField(max_length=3)
-#     market = models.CharField(max_length=6)
-#     tp = models.DateField()
-#     source = models.ManyToManyField(FsDetail)
-#     updatedAt = models.DateField(auto_now_add=True)
-#
-#     class Meta:
-#         db_table = 'fa_cs'
-#
-#     @property
-#     def obs(self):
-#         FIELDS = {
-#             'fs__corp__stockCode': 'stock_code',
-#             'fs__corp__corpName': 'corp_name',
-#             'fs__corp__fye': 'fye',
-#             'fs__fqe': 'fqe',
-#             'fs__by': 'by',
-#             'fs__bq': 'bq',
-#             'value': 'value'
-#         }
-#         ft_div = self.source.first().fs.type.type
-#         df = pd.DataFrame.from_records(self.source.values(*FIELDS.keys())).rename(columns=FIELDS)
-#         df.fqe = pd.to_datetime(df.fqe)
-#         # if ft_div == 'BS':
-#         #     return df[['stock_code', 'corp_name', 'fqe', 'value']]
-#         if ft_div != 'BS':
-#             df = df.sort_values(['stock_code','fqe'])
-#             mgap = df.fqe.dt.month - df.fye
-#             ydiff =  -((mgap <= 0) & (df.fye != 12)).astype(int)
-#             df.by = df.fqe.dt.year + ydiff
-#             df.bq = mgap.replace({-9:3, -6:6, -3:9, 0:12}) // 3
-#
-#             idx2fqe = (
-#                 df[['stock_code','corp_name','by','bq','fqe']]
-#                 .set_index(['stock_code', 'corp_name','by','bq'])
-#                 .fqe.to_dict()
-#             )
-#             dfq = (
-#                 df[['stock_code','corp_name','by','bq','value']]
-#                 .set_index(['stock_code','corp_name','by','bq'])
-#                 .value.unstack('bq')
-#             )
-#             dfq[4] = dfq[4] - (dfq[1] + dfq[2] + dfq[3])
-#             dfq = dfq.stack().rename('value').to_frame()
-#             dfq['fqe'] = [idx2fqe[idx] for idx in dfq.index]
-#             df = dfq.reset_index()[['stock_code','corp_name','fqe','value']]
-#         df = df.sort_values(
-#             ['stock_code','fqe'],
-#             ascending = [True, False]
-#         ).drop_duplicates('stock_code')
-#         valid = self.tp - df.fqe.dt.date <= '62 days'
-#         return df.loc[valid].reset_index(drop=True)
+class FaCsSourceNotRegisteredError(Exception):
+    def __init__(self, fa):
+        msg = f"Source for [{fa}, {mkt}, {tp}] not found."
+        super.__init__(msg)
+
+class FaCsSourceAlreadyExistsError(Exception):
+    def __init__(self, fa):
+        msg = f"Source for [{fa}, {mkt}, {tp}] already exists."
+        super.__init__(msg)

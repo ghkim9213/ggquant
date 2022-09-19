@@ -979,7 +979,7 @@
         };
       };
 
-      let fasInfo = JSON.parse(faData.fas_info)
+      let fasInfo = JSON.parse(faData.fa_info)
       let ocLk = (fasInfo.oc === 'CFS') ? '연결':'별도';
       let valLabel = `${fasInfo.lk} (${ocLk})`;
       let growthLabel = `${fasInfo.lk} 변동율 (${ocLk})`;
@@ -1005,7 +1005,7 @@
     });
   };
   function updateFaChartControl(faData) {
-    let fasInfo = JSON.parse(faData.fas_info);
+    let fasInfo = JSON.parse(faData.fa_info);
     let rowId = `faChartControlRow-${fasInfo.oc}-${fasInfo.nm}`
     let row = $(`#${rowId}`);
     let ocLk = (fasInfo.oc === 'CFS') ? '연결':'별도';

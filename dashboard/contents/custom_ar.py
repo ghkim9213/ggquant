@@ -24,17 +24,10 @@ class CustomAr:
     def check_item(self, oc, acnt_nm):
         fas = FaSeries(acnt_nm, oc)
         ts = fas.time_series(self.stock_code)
-        # ts_exists  = len(ts) > 0
-
-        cs = FaCrossSection.objects.filter(
-            name = acnt_nm,
-            oc = oc,
-            market = self.market
-        )
 
         data = json.dumps({
             'ts': len(ts) > 0,
-            'cs': cs.exists(),
+            'cs': fas.fa.inspect(),
         })
 
         async_to_sync(self.channel_layer.send)(

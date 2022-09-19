@@ -75,15 +75,17 @@ class StkrptCustomArConsumer(WebsocketConsumer):
     def receive(self, text_data):
         inputs = json.loads(text_data)
 
-        request_type = inputs.pop('requestType')
-        stock_code = inputs.pop('stockCode')
-        car = CustomAr(stock_code, self.channel_name)
+        request_type = inputs.pop('type')
 
         # check item
         if request_type == 'checkItem':
-            oc = inputs.pop('oc')
-            acnt_nm = inputs.pop('itemName')
+            data = inputs.pop('data')
+            stock_code = data.pop('stockCode')
+            oc = data.pop('oc')
+            acnt_nm = data.pop('itemName')
+            car = CustomAr(stock_code, self.channel_name)
             car.check_item(oc, acnt_nm)
+
         elif request_type == 'static':
             ar_syntax = inputs.pop('arSyntax')
 
