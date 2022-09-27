@@ -287,7 +287,7 @@ class FsAccountLite(models.Model):
             'path': ' / '.join([
                 a.labelKor.replace('[abstract]', '').strip()
                 for a in get_fa_path(fa, [])
-            ])
+            ]),
         }
 
     def inspect(self):
@@ -414,7 +414,7 @@ class AccountRatio(models.Model):
     labelKor = models.CharField(max_length=128)
     syntax = models.CharField(max_length=256)
     changeIn = models.BooleanField(default=False)
-    updatedAt = models.DateField(auto_now=True)
+    createdAt = models.DateField(auto_now=True)
     items = models.ManyToManyField(FsAccountLite)
 
     class Meta:
@@ -443,6 +443,7 @@ class AccountRatio(models.Model):
             request_items.append({
                 'letter': LETTER_ORD[pos],
                 'nm': item.name,
+                'lk': item.info['lk'],
                 'oc': item.oc
             })
         operation = self.syntax
@@ -451,7 +452,7 @@ class AccountRatio(models.Model):
         return {
             'nm': self.name,
             'abbrev': self.abbrev,
-            'div': self.div,
+            'carDiv': self.div,
             'operation': operation,
             'lk': self.labelKor,
             'items': request_items,

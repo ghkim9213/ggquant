@@ -28,5 +28,5 @@ def batchs():
             fsm.update()
             fsm.update_details()
 
-        facsm = FaCrossSectionManager()
-        facsm.update_by_new_fd()
+    facsm = FaCrossSectionManager()
+    facsm.update_daily()

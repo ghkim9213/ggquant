@@ -1,3 +1,4 @@
+from ggdb.models import AccountRatio
 from ggdb.models import Fs
 from ggdb.models import FsAccountLite
 from ggdb.models import FsDetail
@@ -29,7 +30,7 @@ class FaCrossSectionManager:
         if not fa.batch:
             return None
 
-        print(f"updating cross section for {fa.name} {fa.oc}...")
+        print(f"...updating cross section for {fa.name} {fa.oc}...")
         facs_all = fa.cs.all()
         comb2facs = {(
                 facs.market,
@@ -111,22 +112,49 @@ class FaCrossSectionManager:
         for fa in fa_all:
             self.update(fa)
 
-    def update_by_new_fd(self):
-        fd_created_all = FsDetails.objects.filter(
+    def update_daily(self):
+        print('updating fa_cs...')
+        fd_created_all = FsDetail.objects.filter(
             createdAt = self.today,
         ).select_related('account', 'fs__type')
         fa_updated = []
-        for fd in fd_created_all:
-            acnt_nm = fd.account.accountNm
-            oc = fd.fs.type.oc
-            try:
-                fa = FsAccountLite.objects.get(
-                    name = acnt_nm,
-                    oc = oc
-                )
-                if fa not in fa_updated:
+        if fd_created_all.exists():
+            print('...collecting created fsdetails')
+            for fd in fd_created_all:
+                if fd.account:
+                    acnt_nm = fd.account.accountNm
+                    oc = fd.fs.type.oc
+                else:
+                    continue
+
+                try:
+                    fa = FsAccountLite.objects.get(
+                        name = acnt_nm,
+                        oc = oc
+                    )
+                except:
+                    continue
+
+                if (fa.batch) and (fa not in fa_updated):
                     fa_updated.append(fa)
-            except: # what kind of error in this cas?
-                continue
-        for fa in fa_updated:
-            self.update(fa)
+
+        ar_all = AccountRatio.objects.filter(
+            createdAt = self.today
+        )
+        if ar_all.exists():
+            print('...collecting items from new created account ratio')
+            for ar in ar_all:
+                items = ar.items.all()
+                for fa in items:
+                    if not fa.batch:
+                        fa.batch = True
+                        fa.save()
+                        if fa not in fa_updated:
+                            fa_updated.append(fa)
+
+        if len(fa_updated) > 0:
+            for fa in fa_updated:
+                self.update(fa)
+            print('...complete!')
+        else:
+            print('...no update in fa_cs today.')
