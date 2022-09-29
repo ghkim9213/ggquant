@@ -416,6 +416,7 @@ class AccountRatio(models.Model):
     changeIn = models.BooleanField(default=False)
     createdAt = models.DateField(auto_now=True)
     items = models.ManyToManyField(FsAccountLite)
+    preset = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'account_ratio'

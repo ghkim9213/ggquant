@@ -1,0 +1,63 @@
+{% load static %}
+
+<style>
+  #arpViewer {
+    height: 100vh;
+    border: 1px solid;
+    border-radius: .25rem;
+    border-color: #dee2e6;
+  }
+  #arpForm {
+    height: 13vh;
+  }
+  #arpResult {
+    height: 87vh;
+    padding: 1rem;
+  }
+</style>
+
+<!-- title -->
+<h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무비율별 변동 및 시점별 분포</h5>
+
+<!-- description -->
+<p class="text-lead text-muted fs-5">{{ corp.corpName }}의 분기별 재무비율 변동 및 각 시점별 {{ corp.market }} 상장사의 재무비율 분포 정보를 조회합니다.</p>
+
+<!-- ar panel form -->
+<div id="arpViewer">
+  <div class="d-flex justify-content-center bg-light" id="arpForm"></div>
+  <hr class="my-0">
+  <div id="arpResult"></div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/chart-tools.js'%}"></script>
+<script src="{% static 'js/ar-chart-tools.js'%}"></script>
+<script src="{% static 'js/ar-panel-viewer.js' %}"></script>
+<script>
+  const arWs = new WebSocket(
+    `ws://${window.location.host}/ws/dashboard/stkrpt/ar`
+  );
+  var arpViewer;
+  const arpLegendMap = {
+    'hist': '빈도',
+    'kde': 'Gaussian KDE',
+    'valMarker': '{{ corp.corpName }}',
+    'avgMarker': '{{ corp.market }} 평균',
+    'q1Marker': '{{ corp.market }} 25%',
+    'q2Marker': '{{ corp.market }} 50%',
+    'q3Marker': '{{ corp.market }} 75%'
+  };
+
+  arWs.onopen = function() {
+    arpViewer = new ArPanelViewer(
+      'arpForm',
+      'arpResult',
+      '{{ ar_viewer.ar_choices | escapejs }}',
+      arWs,
+      '{{ corp.stockCode }}',
+      arpLegendMap,
+    );
+    arpViewer.activate();
+  }
+</script>

@@ -1,54 +1,67 @@
 from .data.ar import ArSeries
 from .data.tools import *
+from .tools import *
 
 from asgiref.sync import sync_to_async, async_to_sync
 from channels.layers import get_channel_layer
 from ggdb.models import Corp, AccountRatio
-from scipy.stats import gaussian_kde, skew
 
 import json
 import numpy as np
 import pandas as pd
 
 class ArPanel:
-    def __init__(self, ar_nm, oc, stock_code, channel_name):
+    def __init__(self, stock_code, channel_name):
         self.channel_layer = get_channel_layer()
         self.channel_name = channel_name
 
         self.stock_code = stock_code
         self.market = Corp.objects.get(stockCode=stock_code).market
 
-        ar_all = AccountRatio.objects.filter(name=ar_nm)
-        ar = [ar for ar in ar_all if ar.oc == oc][0]
-        r = ar.to_request()
-        self.ars = ArSeries(
-            operation = r['operation'],
-            change_in = r['changeIn'],
-            items = r['items'],
-        )
+    def get_ts_data(self, ar):
+        operation = ar.pop('operation')
+        change_in = ar.pop('changeIn')
+        items = ar.pop('items')
 
-    def generate_static_data(self):
-        ts = self.ars.time_series(self.stock_code)
+        ars = ArSeries(
+            operation = operation,
+            change_in = change_in,
+            items = items
+        )
+        ts = ars.time_series(self.stock_code)
         if len(ts) > 0:
             ts = fill_tgap(ts)
             data = json.dumps({
-                't': ts.fqe.to_json(orient='records'),
-                'val': ts.value.to_json(orient='records'),
+                'ts': {
+                    't': ts.fqe.to_json(orient='records'),
+                    'val': ts.value.to_json(orient='records'),
+                },
+                'cs_exists': True,
             })
         else:
             data = json.dumps(None)
 
         async_to_sync(self.channel_layer.send)(
             self.channel_name, {
-                'type': 'ar.static',
+                'type': 'send.arp',
                 'text': data
             }
         )
 
-    def generate_dynamic_data(self, tp):
+    def get_dist_data(self, ar, tp):
+        operation = ar.pop('operation')
+        change_in = ar.pop('changeIn')
+        items = ar.pop('items')
+        ars = ArSeries(
+            operation = operation,
+            change_in = change_in,
+            items = items,
+        )
+
         tp_json = tp
         tp = pd.to_datetime(tp, unit='ms')
-        cs = self.ars.cross_section(self.market, tp)
+
+        cs = ars.cross_section(self.market, tp)
         cs['rank'] = cs.value.rank(ascending=False, method='min')
         cs['pct'] = cs.value.rank(pct=True, method='min')
         cs['eval'] = pd.cut(
@@ -105,7 +118,7 @@ class ArPanel:
         counts = [int(c) for c in counts]
 
         # kde
-        norm_kde = get_norm_kde(cs_trunc.value, bins)
+        kde = get_kde(cs_trunc.value, bins)
 
         data = json.dumps({
             'tp': tp_json,
@@ -119,16 +132,11 @@ class ArPanel:
             'q3': desc['75%'],
             'bins': bins,
             'counts': counts,
-            'kde': norm_kde,
+            'kde': kde,
         })
         async_to_sync(self.channel_layer.send)(
             self.channel_name, {
-                'type': 'ar.dynamic',
+                'type': 'send.arp',
                 'text': data
             }
         )
-
-def get_norm_kde(s, bins):
-    kernel = gaussian_kde(s)
-    kde = kernel(bins)
-    return list(kde / kde.sum())

@@ -101,86 +101,8 @@ class FaTimeSeries(models.Model):
             dfq['fqe'] = [idx2fqe[idx] for idx in dfq.index]
             return dfq.reset_index()[['fqe','value']]
 
-# class FaTimeSeries:
-#     def __init__(self, acnt_nm, oc, stock_code):
-#         self.acnt_nm = acnt_nm
-#         self.oc = oc
-#         self.stock_code = stock_code
-#
-#     @property
-#     def obs(self):
-#         corp = Corp.objects.get(stockCode=self.stock_code)
-#         fltr = {
-#             'account__accountNm': self.acnt_nm,
-#             'fs__corp': corp,
-#             'fs__type__oc': self.oc,
-#         }
-#         FIELDS = {
-#             'fs__fqe': 'fqe',
-#             'fs__by': 'by',
-#             'fs__bq': 'bq',
-#             'fs__type__name': 'ft',
-#             'value': 'value'
-#         }
-#         # query
-#         qs = (
-#             FsDetail.objects
-#             .filter(**fltr)
-#             .select_related('fs','fs__type')
-#         )
-#         if not qs.exists():
-#             return pd.DataFrame()
-#
-#         ft_div = qs.first().fs.type.type
-#
-#         # clean data
-#         df = pd.DataFrame.from_records(qs.values(*FIELDS.keys())).rename(columns=FIELDS)
-#         df.fqe = pd.to_datetime(df.fqe)
-#
-#         # dups in PL
-#         if ft_div == 'PL':
-#             ft_prefix_uniq = df.ft.str[:-1].unique()
-#             if ('IS' in ft_prefix_uniq) and ('CIS' in ft_prefix_uniq):
-#                 df = df.loc[df.ft.str[:-1] != 'CIS']
-#
-#         # keep representitive values only
-#         ft_count = df.ft.value_counts().to_dict()
-#         df['ft_order'] = df.ft.replace(ft_count)
-#         df = df.sort_values(
-#             ['fqe', 'ft_order'],
-#             ascending = [False, False]
-#         ).drop_duplicates('fqe')
-#         del df['ft_order']
-#
-#         if ft_div == 'BS':
-#             return df.sort_values('fqe')[['fqe', 'value']]
-#         else:
-#             # fix by bq
-#             df = df.sort_values('fqe')
-#             mgap = df.fqe.dt.month - corp.fye
-#             ydiff =  -((mgap <= 0) & (corp.fye != 12)).astype(int)
-#             df.by = df.fqe.dt.year + ydiff
-#             df.bq = mgap.replace({-9:3, -6:6, -3:9, 0:12}) // 3
-#
-#             idx2fqe = (
-#                 df[['by','bq','fqe']]
-#                 .set_index(['by','bq'])
-#                 .fqe.to_dict()
-#             )
-#             dfq = (
-#                 df[['by','bq','value']]
-#                 .set_index(['by','bq'])
-#                 .value.unstack('bq')
-#             )
-#             dfq[4] = dfq[4] - (dfq[1]+dfq[2]+dfq[3])
-#             dfq = dfq.stack().rename('value').to_frame()
-#             dfq['fqe'] = [idx2fqe[idx] for idx in dfq.index]
-#             return dfq.reset_index()[['fqe','value']]
-
 
 ## many-to-many mapping models
-
-
 
 # FaCrossSection is devised for faster handling FaSeries
 # , a class of data series for a financial account.

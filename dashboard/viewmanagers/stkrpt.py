@@ -1,10 +1,10 @@
 from dashboard.contents.data.ar import *
 from django.db.models import Max, Avg
 from functools import reduce
-from ggdb.batchtools.account_ratio import *
 from ggdb.models import *
 
-import asyncio, datetime
+import json
+
 
 class StkrptViewManager:
 
@@ -28,7 +28,17 @@ class StkrptViewManager:
         # # return json.dumps({c.corpName : c.stockCode for c in corp_all})
 
     def ar_viewer(self):
-        ar_all = AccountRatio.objects.all()
+        ar_choices = {'CFS': [], 'OFS': []}
+        ar_all = AccountRatio.objects.filter(preset=True)
+        for ar in ar_all:
+            if ar.oc == 'mix':
+                continue
+            ar_choices[ar.oc].append({
+                'nm': ar.name,
+                'lk': ar.labelKor,
+                'abbrev': ar.abbrev,
+                'data': ar.to_request(),
+            })
         # larv_all = []
         # oc='CFS'
         # for ar in ar_all:
@@ -83,12 +93,7 @@ class StkrptViewManager:
         #     larv_all.append(larv)
 
         return {
-            # 'larv_all': larv_all,
-            'select_form': {
-                'oc_choices': ['CFS', 'OFS'],
-                'ar_choices': self.ar_all,
-                'alpha_choices': ['95', '99', '100'],
-            },
+            'ar_choices': json.dumps(ar_choices),
         }
 
     def fa_viewer(self):

@@ -18,8 +18,8 @@ class FaTs:
         fa_info = json.dumps(self.fas.fa.info)
         ts = self.fas.time_series(self.stock_code)
         if len(ts) > 0:
-            tmin = ts.fqe.min()
-            tmax = ts.fqe.max()
+            # tmin = ts.fqe.min()
+            # tmax = ts.fqe.max()
             ts = fill_tgap(ts)
             ts['growth'] = (ts.value / ts.value.shift(1) - 1) * 100
 

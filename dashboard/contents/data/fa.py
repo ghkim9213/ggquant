@@ -26,13 +26,15 @@ class FaSeries:
         return ts.obs
 
     def cross_section(self, mkt, tp):
-        if not self.fa.cs.exists():
-            facsm = FaCrossSectionManager()
-            facsm.update(self.fa)
+        if self.fa.cs.exists():
+            cs = FaCrossSection.objects.get(
+                fa = self.fa,
+                market = mkt,
+                tp = tp.date(),
+            )
+            return cs.obs
+        else:
+            return pd.DataFrame()
 
-        cs = FaCrossSection.objects.get(
-            fa = self.fa,
-            market = mkt,
-            tp = tp.date(),
-        )
-        return cs.obs
+            # facsm = FaCrossSectionManager()
+            # facsm.update(self.fa)

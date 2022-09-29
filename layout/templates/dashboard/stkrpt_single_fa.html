@@ -1,0 +1,32 @@
+{% load static %}
+
+<h5 class="mb-3 fw-bold"><i class="bi bi-chevron-double-right text-secondary"></i> 재무계정별 변동</h5>
+<div id="sfaControl"></div>
+<canvas id="sfaChart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/chart-tools.js' %}"></script>
+<script src="{% static 'js/single-fa-viewer.js' %}"></script>
+<script>
+  const faWs = new WebSocket(
+      `ws://${window.location.host}/ws/dashboard/stkrpt/fa`
+  );
+  const faAll = JSON.parse("{{ fa_viewer.fa_all | escapejs }}");
+  function koreanAscending(a, b) {
+    return (a.lk < b.lk)?-1:(a.lk == b.lk)?0:1;
+  };
+  faAll.sort(koreanAscending);
+  var sfaViewer;
+  faWs.onopen = function() {
+    let colorPalette = getColorPalette();
+    sfaViewer = new SingleFaViewer(
+      '{{ corp.stockCode }}',
+      faWs,
+      'sfaChart',
+      'sfaControl',
+      colorPalette,
+      faAll,
+    );
+    sfaViewer.activate();
+  }
+</script>

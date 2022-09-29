@@ -18,23 +18,20 @@ class StkrptArConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         inputs = json.loads(text_data)
-        request_type = inputs.pop('requestType')
+        request_type = inputs.pop('type')
+        data = inputs.pop('data')
 
-        stock_code = inputs.pop('stockCode', None)
-        oc = inputs.pop('oc', None)
-        ar_nm = inputs.pop('arName', None)
-        tp = inputs.pop('tp', None)
+        stock_code = data.pop('stockCode', None)
+        arp = ArPanel(stock_code, self.channel_name)
 
-        arp = ArPanel(ar_nm, oc, stock_code, self.channel_name)
-        if request_type == 'static':
-            arp.generate_static_data()
-        elif request_type == 'dynamic':
-            arp.generate_dynamic_data(tp)
+        ar = data.pop('ar')
+        if request_type == 'ts':
+            arp.get_ts_data(ar)
+        elif request_type == 'dist':
+            tp = data.pop('tp')
+            arp.get_dist_data(ar, tp)
 
-    def ar_static(self, event):
-        self.send(event['text'])
-
-    def ar_dynamic(self, event):
+    def send_arp(self, event):
         self.send(event['text'])
 
 
@@ -52,7 +49,7 @@ class StkrptFaConsumer(WebsocketConsumer):
         stock_code, oc, acnt_nm = (
             inputs['stockCode'],
             inputs['oc'],
-            inputs['faName']
+            inputs['nm']
         )
         fa_ts = FaTs(acnt_nm, oc, stock_code, self.channel_name)
         fa_ts.generate_data()
@@ -76,22 +73,28 @@ class StkrptCustomArConsumer(WebsocketConsumer):
         inputs = json.loads(text_data)
 
         request_type = inputs.pop('type')
+        data = inputs.pop('data')
+        stock_code = data.pop('stockCode')
+        car = CustomAr(stock_code, self.channel_name)
 
         # check item
         if request_type == 'checkItem':
-            data = inputs.pop('data')
-            stock_code = data.pop('stockCode')
             oc = data.pop('oc')
-            acnt_nm = data.pop('itemName')
-            car = CustomAr(stock_code, self.channel_name)
+            acnt_nm = data.pop('nm')
             car.check_item(oc, acnt_nm)
 
-        elif request_type == 'static':
-            ar_syntax = inputs.pop('arSyntax')
+        elif request_type == 'checkCar':
+            custom_ar = data.pop('customAr')
+            car.check_car(custom_ar)
 
-            pass
-        elif request_type == 'dynamic':
-            pass
+        elif request_type == 'ts':
+            custom_ar = data.pop('ar')
+            car.get_ts_data(custom_ar)
 
-    def car_check_item(self, event):
+        elif request_type == 'dist':
+            custom_ar = data.pop('ar')
+            tp = data.pop('tp')
+            car.get_dist_data(custom_ar, tp)
+
+    def send_car(self, event):
         self.send(event['text'])
