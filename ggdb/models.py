@@ -1,6 +1,8 @@
 from .batchtools.scrappers import download_opendart_file
 from .errors import *
+
 from django.db import models
+from django.db.models.functions import Trim
 
 import pandas as pd
 import datetime
@@ -265,6 +267,19 @@ class FsAccount(models.Model):
         ]
 
 
+
+    # # the following is useful but takes too much time
+    # def get_all_children(self, include_self=True):
+    #     r = []
+    #     if include_self:
+    #         r.append(self)
+    #     for c in FsAccount.objects.filter(parent=self):
+    #         _r = c.get_all_children(include_self=True)
+    #         if len(_r) > 0:
+    #             r.extend(_r)
+    #     return r
+
+
 class FsAccountLite(models.Model):
     name = models.CharField(max_length=256)
     oc = models.CharField(max_length=256)
@@ -391,6 +406,27 @@ class FsDetail(models.Model):
     @property
     def is_standard(self):
         return self.account != None
+
+    # @property
+    def get_matched(self):
+        if self.is_standard:
+            return None
+        lk = self.labelKor.replace(' ','')
+        ft_div = self.fs.type.type
+        ch = (
+            FsAccount.objects
+            .annotate(lk = Trim('labelKor'))
+            .filter(lk = lk)
+        )
+        for fa in ch:
+            if self.parent.type == fa.type:
+                print('matched')
+                return fa
+            elif self.parent.type.oc == fa.type.oc:
+                print('matched')
+                return fa
+        print('not matched')
+        return None
 
 
 class FsDetailHistory(models.Model):

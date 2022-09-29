@@ -30,7 +30,7 @@ class FaCrossSectionManager:
         if not fa.batch:
             return None
 
-        print(f"...updating cross section for {fa.name} {fa.oc}...")
+        print(f"...updating cross section for {fa.name} {fa.oc}")
         facs_all = fa.cs.all()
         comb2facs = {(
                 facs.market,
@@ -138,9 +138,7 @@ class FaCrossSectionManager:
                 if (fa.batch) and (fa not in fa_updated):
                     fa_updated.append(fa)
 
-        ar_all = AccountRatio.objects.filter(
-            createdAt = self.today
-        )
+        ar_all = AccountRatio.objects.all()
         if ar_all.exists():
             print('...collecting items from new created account ratio')
             for ar in ar_all:
