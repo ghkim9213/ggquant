@@ -288,7 +288,7 @@ class CustomAr:
             'q3': desc['75%'],
             'bins': bins,
             'counts': counts,
-            'kde': norm_kde,
+            'kde': kde,
         })
         async_to_sync(self.channel_layer.send)(
             self.channel_name, {
