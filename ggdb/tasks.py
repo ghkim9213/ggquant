@@ -28,5 +28,9 @@ def batchs():
             fsm.update()
             fsm.update_details()
 
+            nstd_matcher = FdNstdMatcher()
+            if nstd_matcher:
+                nstd_matcher.match()
+
     facsm = FaCrossSectionManager()
     facsm.update_daily()

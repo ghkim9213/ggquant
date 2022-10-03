@@ -394,6 +394,7 @@ class FsDetail(models.Model):
         on_delete = models.CASCADE,
         blank = True, null = True,
     )
+    allowMatch = models.BooleanField(default=False)
 
 
     class Meta:

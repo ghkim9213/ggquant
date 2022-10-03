@@ -1,4 +1,5 @@
 from .scrappers import *
+from django.db.models.functions import Trim
 from ggdb.models import *
 from itertools import islice
 
@@ -292,6 +293,7 @@ class FsManager:
             else:
                 pnm = fd['accountId'].split('_')[-1]
                 fd['parent_id'] = comb2fa[(pnm.lower(),ftid)].id
+                fd['allowMatch'] = True
 
         fsid_all = list(set([fd['fs_id'] for fd in self._details]))
         fd_all = FsDetail.objects.select_related('fs').filter(fs_id__in=fsid_all)
@@ -343,3 +345,79 @@ class FsManager:
         else:
             print('...no new fsdetail.')
         print('...update complete!')
+
+
+class FdNstdMatcher:
+
+    def __init__(self, allowed_only=True):
+        # Django function Trim removes white space on both sides
+        #, not btw characters.
+        # This causes more incomplete matching for Korean characters.
+        print('initiating process for matching fd_nstd and fa_std...')
+        self.fa_all = (
+            FsAccount.objects.all()
+            .annotate(lk = Trim('labelKor'))
+        )
+        fltr = {
+            'account': None,
+            'matched': None,
+        }
+        if allowed_only:
+            fltr['allowMatch'] = True
+
+        self.unmatched_all = (
+            FsDetail.objects
+            .filter(**fltr)
+            .annotate(lk = Trim('labelKor'))
+        )
+
+        if self.unmatched_all.count() == 0:
+            print('...no fd_nstd to match')
+            return None
+
+        lk_all = set(list(self.unmatched_all.values_list('lk', flat=True)))
+        ch_map = {lk:[] for lk in lk_all}
+        for fa in self.fa_all:
+            if fa.lk in ch_map.keys():
+                ch_map[fa.lk].append(fa)
+        self.ch_map = ch_map
+
+    def get_matched(self, fd_nstd):
+        choices = self.ch_map[fd_nstd.lk]
+        if not choices:
+            return None
+        for c in choices:
+            if fd_nstd.fs.type == c.type:
+                return c
+            elif fd_nstd.fs.type.oc == c.type.oc:
+                return c
+        return None
+
+    def match(self):
+        print('...matching')
+        get_d = lambda fd_nstd: {
+            'fd': fd_nstd,
+            'matched': self.get_matched(fd_nstd),
+            'allow_match': False
+        }
+
+        matched_all = list(map(
+            get_d,
+            self.unmatched_all
+        ))
+        updated = []
+        for d in matched_all:
+            fd = d.pop('fd')
+            fd.matched = d.pop('matched')
+            fd.allowMatch = d.pop('allow_match')
+            updated.append(fd)
+
+        batch_size = int(1e5)
+        while True:
+            print(f"...{len(updated)} fd_nstd were left to be matched")
+            batch = list(islice(updated, batch_size))
+            if not batch:
+                break
+            FsDetail.objects.bulk_update(batch, ['matched', 'allowMatch'])
+            updated = updated[batch_size:]
+        print('...complete!')
