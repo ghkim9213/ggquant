@@ -26,7 +26,13 @@ with open('.etc/secret_key.txt') as f:
 # SECURITY WARNING: don't run with debug turned on in production!
 from ggquant.local_settings import LOCAL_DEBUG
 DEBUG = LOCAL_DEBUG
-ALLOWED_HOSTS = ['43.200.134.113', '.ap-northeast-2.compute.amazonaws.com', 'localhost']
+ALLOWED_HOSTS = [
+    '43.200.134.113',
+    '.ap-northeast-2.compute.amazonaws.com',
+    'localhost',
+    'ggquant-beta.com',
+    'www.ggquant-beta.com',
+]
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
