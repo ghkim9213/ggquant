@@ -266,6 +266,10 @@ class FsAccount(models.Model):
             models.Index(fields=['accountNm','type'])
         ]
 
+    @property
+    def related_all(self):
+        return FsAccount.objects.filter(accountNm = self.accountNm)
+
 
 
     # # the following is useful but takes too much time
@@ -401,7 +405,7 @@ class FsDetail(models.Model):
         db_table = 'fsdetail'
         get_latest_by = 'createdAt'
         indexes = [
-            models.Index(fields=['accountId','fs','account']),
+            models.Index(fields=['accountId','fs','account', 'createdAt']),
         ]
 
     @property

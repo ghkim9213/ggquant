@@ -387,9 +387,11 @@ class FdNstdMatcher:
         if not choices:
             return None
         for c in choices:
-            if fd_nstd.fs.type == c.type:
+            is_same_type = fd_nstd.fs.type == c.type
+            is_same_oc = is_same_type and (fd_nstd.fs.type.oc == c.type.oc)
+            if is_same_type:
                 return c
-            elif fd_nstd.fs.type.oc == c.type.oc:
+            elif is_same_oc:
                 return c
         return None
 

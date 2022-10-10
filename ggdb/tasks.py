@@ -1,6 +1,6 @@
 from .batchtools.account_ratio import *
 from .batchtools.corp import *
-from .batchtools.fa_cs import *
+from .batchtools.fa_root import *
 from .batchtools.fs import *
 
 from celery import shared_task
@@ -28,9 +28,5 @@ def batchs():
             fsm.update()
             fsm.update_details()
 
-            nstd_matcher = FdNstdMatcher()
-            if nstd_matcher:
-                nstd_matcher.match()
-
-    facsm = FaCrossSectionManager()
-    facsm.update_daily()
+            frm = FaRootManager()
+            frm.update_daily()
