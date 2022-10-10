@@ -20,7 +20,7 @@ class FaRootManager:
             batch = list(islice(data, batch_size))
             if not batch:
                 break
-            model.objects.bulk_create(batch, batch_size)
+            model.objects.bulk_create(batch, batch_size, ignore_conflicts=True)
             data = data[batch_size:]
 
     def create(self, fa):
@@ -99,19 +99,21 @@ class FaRootManager:
                     )
                     m2m_nstd_created.append(m2m)
 
-        print('...writing on db')
-        self.batch(
-            model = FaRoot.stdVal.through,
-            data = m2m_std_created,
-            batch_size = self.BATCH_SIZE
-        )
+        return m2m_std_created, m2m_nstd_created
 
-        self.batch(
-            model = FaRoot.nstdVal.through,
-            data = m2m_nstd_created,
-            batch_size = self.BATCH_SIZE
-        )
-        print('...complete!')
+        # print('...writing on db')
+        # self.batch(
+        #     model = FaRoot.stdVal.through,
+        #     data = m2m_std_created,
+        #     batch_size = self.BATCH_SIZE
+        # )
+        #
+        # self.batch(
+        #     model = FaRoot.nstdVal.through,
+        #     data = m2m_nstd_created,
+        #     batch_size = self.BATCH_SIZE
+        # )
+        # print('...complete!')
 
 
     def get_lk_to_root_map(self):
