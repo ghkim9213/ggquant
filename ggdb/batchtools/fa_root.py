@@ -99,21 +99,19 @@ class FaRootManager:
                     )
                     m2m_nstd_created.append(m2m)
 
-        return m2m_std_created, m2m_nstd_created
+        print('...writing on db')
+        self.batch(
+            model = FaRoot.stdVal.through,
+            data = m2m_std_created,
+            batch_size = self.BATCH_SIZE
+        )
 
-        # print('...writing on db')
-        # self.batch(
-        #     model = FaRoot.stdVal.through,
-        #     data = m2m_std_created,
-        #     batch_size = self.BATCH_SIZE
-        # )
-        #
-        # self.batch(
-        #     model = FaRoot.nstdVal.through,
-        #     data = m2m_nstd_created,
-        #     batch_size = self.BATCH_SIZE
-        # )
-        # print('...complete!')
+        self.batch(
+            model = FaRoot.nstdVal.through,
+            data = m2m_nstd_created,
+            batch_size = self.BATCH_SIZE
+        )
+        print('...complete!')
 
 
     def get_lk_to_root_map(self):
